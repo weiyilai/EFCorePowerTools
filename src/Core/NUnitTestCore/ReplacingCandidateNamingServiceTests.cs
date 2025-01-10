@@ -2,6 +2,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using NUnit.Framework;
+//using NUnit.Framework.Legacy;
 using RevEng.Common;
 using RevEng.Core;
 
@@ -24,7 +25,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -61,7 +62,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -95,7 +96,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -138,7 +139,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTables = new List<DatabaseTable>
             {
@@ -208,7 +209,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTables = new List<DatabaseTable>
             {
@@ -264,7 +265,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTables = new List<DatabaseTable>
             {
@@ -331,7 +332,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -370,7 +371,7 @@ namespace UnitTests.Services
                 },
             };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTables = new List<DatabaseTable>
             {
@@ -445,7 +446,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             // Act
             var actResult = sut.GenerateCandidateIdentifier(exampleColumn);
@@ -494,7 +495,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             // Act
             var actResult = sut.GenerateCandidateIdentifier(exampleColumn);
@@ -576,7 +577,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             // Act
             var actResult = new List<string>();
@@ -610,7 +611,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -644,7 +645,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -677,7 +678,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption, true);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption, true);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -710,7 +711,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption, false);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption, false);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -758,7 +759,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbColumn = new DatabaseColumn
             {
@@ -795,7 +796,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption, true);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption, true);
 
             var exampleDbColumn = new DatabaseColumn
             {
@@ -833,7 +834,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption, true);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption, true);
 
             var exampleDbColumn = new DatabaseColumn
             {
@@ -886,7 +887,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbColumn = new DatabaseColumn
             {
@@ -932,7 +933,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             var exampleDbTable = new DatabaseTable
             {
@@ -977,7 +978,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             // Act
             var actResult = sut.GenerateCandidateIdentifier(exampleColumn);
@@ -1031,7 +1032,7 @@ namespace UnitTests.Services
                   },
               };
 
-            var sut = new ReplacingCandidateNamingService(exampleOption);
+            var sut = new ReplacingCandidateNamingService(false, exampleOption);
 
             // Act
             var actResult = sut.GenerateCandidateIdentifier(exampleColumn);

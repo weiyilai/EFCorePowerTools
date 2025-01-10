@@ -262,7 +262,7 @@
     <value>Loading options...</value>
   </data>
   <data name="MapHierarchyId" xml:space="preserve">
-    <value>Map hierarchyid</value>
+    <value>Map HierarchyId</value>
   </data>
   <data name="MapNodaTimeTypes" xml:space="preserve">
     <value>Map Noda Time types</value>
@@ -340,7 +340,7 @@
     <value>Search for objects</value>
   </data>
   <data name="SplitDbContextIntoConfigurationClasses" xml:space="preserve">
-    <value>Split DbContext into Configuration classes (preview)</value>
+    <value>Split DbContext into Configuration classes (Obsolete)</value>
   </data>
   <data name="SQLiteExperience" xml:space="preserve">
     <value>Improve your SQLite experience</value>

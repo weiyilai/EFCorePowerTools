@@ -67,16 +67,15 @@ namespace EFCorePowerTools.Common.Models
                             return "<null>";
                         }
 
-                        if (FilePath.EndsWith(".sqlproj", StringComparison.InvariantCultureIgnoreCase))
+                        if (FilePath.EndsWith(".sqlproj", StringComparison.InvariantCultureIgnoreCase)
+                            || FilePath.EndsWith(".csproj", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            return $"{Path.GetFileNameWithoutExtension(FilePath)} (.dacpac)";
+                            return $"{Path.GetFileNameWithoutExtension(FilePath)} (SQL Project)";
                         }
 
                         if (FilePath.EndsWith(".dacpac", StringComparison.InvariantCultureIgnoreCase))
                         {
-                            return FilePath.Length > 40
-                                       ? "..." + FilePath.Substring(FilePath.Length - 40)
-                                       : FilePath;
+                            return $"{Path.GetFileNameWithoutExtension(FilePath)} (.dacpac)";
                         }
                     }
 
@@ -84,6 +83,31 @@ namespace EFCorePowerTools.Common.Models
                 }
 
                 return ConnectionName;
+            }
+        }
+
+        public string ToolTip
+        {
+            get
+            {
+                if (DataConnection == null)
+                {
+                    if (DatabaseType == DatabaseType.SQLServerDacpac)
+                    {
+                        if (string.IsNullOrEmpty(FilePath))
+                        {
+                            return "<null>";
+                        }
+                        else
+                        {
+                            return FilePath;
+                        }
+                    }
+
+                    return ConnectionString;
+                }
+
+                return ConnectionString;
             }
         }
 

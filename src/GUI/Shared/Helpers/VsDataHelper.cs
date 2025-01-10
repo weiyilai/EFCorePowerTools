@@ -16,6 +16,25 @@ namespace EFCorePowerTools.Helpers
 {
     internal class VsDataHelper
     {
+        public static readonly HashSet<Guid> SupportedProviders = new HashSet<Guid>()
+        {
+            new Guid(Resources.SqlServerDotNetProvider),
+            new Guid(Resources.MicrosoftSqlServerDotNetProvider),
+            new Guid(Resources.SQLiteProvider),
+            new Guid(Resources.SQLitePrivateProvider),
+            new Guid(Resources.MicrosoftSQLiteProvider),
+            new Guid(Resources.NpgsqlProvider),
+            new Guid(Resources.MysqlVSProvider),
+            new Guid(Resources.OracleProvider),
+            new Guid(Resources.FirebirdProvider),
+        };
+
+        public static readonly HashSet<Guid> SqlServerProviders = new HashSet<Guid>()
+        {
+            new Guid(Resources.SqlServerDotNetProvider),
+            new Guid(Resources.MicrosoftSqlServerDotNetProvider),
+        };
+
         public static string GetSavedConnectionName(string connectionString, DatabaseType dbType)
         {
             if (dbType == DatabaseType.SQLServer && (connectionString.IndexOf(";Authentication=", StringComparison.OrdinalIgnoreCase) < 0))
@@ -46,6 +65,11 @@ namespace EFCorePowerTools.Helpers
             if (builder.TryGetValue("Initial Catalog", out object catalog))
             {
                 result += "." + catalog.ToString();
+            }
+
+            if (!string.IsNullOrEmpty(result) && result.Length > 1 && result.StartsWith("."))
+            {
+                result = result.Substring(1);
             }
 
             return result;
@@ -130,7 +154,7 @@ namespace EFCorePowerTools.Helpers
             {
                 var providerManager = await VS.GetServiceAsync<IVsDataProviderManager, IVsDataProviderManager>();
                 return providerManager != null &&
-                    providerManager.Providers.TryGetValue(id, out IVsDataProvider provider);
+                    providerManager.Providers.TryGetValue(id, out IVsDataProvider _);
             }
             catch
             {
@@ -147,12 +171,16 @@ namespace EFCorePowerTools.Helpers
             // http://www.mztools.com/articles/2007/MZ2007018.aspx
             Dictionary<string, DatabaseConnectionModel> databaseList = new Dictionary<string, DatabaseConnectionModel>();
             var dataExplorerConnectionManager = await VS.GetServiceAsync<IVsDataExplorerConnectionManager, IVsDataExplorerConnectionManager>();
+
             Guid providerSQLite = new Guid(Resources.SQLiteProvider);
             Guid providerMicrosoftSQLite = new Guid(Resources.MicrosoftSQLiteProvider);
             Guid providerSQLitePrivate = new Guid(Resources.SQLitePrivateProvider);
             Guid providerNpgsql = new Guid(Resources.NpgsqlProvider);
             Guid providerMysql = new Guid(Resources.MysqlVSProvider);
             Guid providerOracle = new Guid(Resources.OracleProvider);
+            Guid providerFirebird = new Guid(Resources.FirebirdProvider);
+            Guid providerSqlServerDotNet = new Guid(Resources.SqlServerDotNetProvider);
+            Guid providerMicrosoftSqlServerDotNet = new Guid(Resources.MicrosoftSqlServerDotNetProvider);
 
             try
             {
@@ -180,8 +208,8 @@ namespace EFCorePowerTools.Helpers
                                 info.DatabaseType = DatabaseType.SQLite;
                             }
 
-                            if (objProviderGuid == new Guid(Resources.SqlServerDotNetProvider)
-                                || objProviderGuid == new Guid(Resources.MicrosoftSqlServerDotNetProvider))
+                            if (objProviderGuid == providerSqlServerDotNet
+                                || objProviderGuid == providerMicrosoftSqlServerDotNet)
                             {
                                 info.DatabaseType = DatabaseType.SQLServer;
                             }
@@ -202,6 +230,11 @@ namespace EFCorePowerTools.Helpers
                                 info.DatabaseType = DatabaseType.Oracle;
                             }
 
+                            if (objProviderGuid == providerFirebird)
+                            {
+                                info.DatabaseType = DatabaseType.Firebird;
+                            }
+
                             if (info.DatabaseType != DatabaseType.Undefined
                                 && !databaseList.ContainsKey(sConnectionString))
                             {
@@ -210,14 +243,14 @@ namespace EFCorePowerTools.Helpers
                         }
                         catch (Exception ex)
                         {
-                            package.LogError(new List<string> { ex.Message }, ex);
+                            EFCorePowerToolsPackage.LogError(new List<string> { ex.Message }, ex);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                package.LogError(new List<string> { ex.Message }, ex);
+                EFCorePowerToolsPackage.LogError(new List<string> { ex.Message }, ex);
             }
 
             try
@@ -229,7 +262,7 @@ namespace EFCorePowerTools.Helpers
             }
             catch (Exception ex)
             {
-                package.LogError(new List<string> { ex.Message }, ex);
+                EFCorePowerToolsPackage.LogError(new List<string> { ex.Message }, ex);
             }
 
             return databaseList;
@@ -297,6 +330,12 @@ namespace EFCorePowerTools.Helpers
                     dbType = DatabaseType.Mysql;
                     providerGuid = Resources.MysqlVSProvider;
                 }
+
+                if (providerInvariant == "FirebirdSql.Data.FirebirdClient")
+                {
+                    dbType = DatabaseType.Firebird;
+                    providerGuid = Resources.FirebirdProvider;
+                }
             }
 
             return new DatabaseConnectionModel
@@ -309,7 +348,7 @@ namespace EFCorePowerTools.Helpers
 
         private static string PathFromConnectionString(string connectionString)
         {
-            var builder = new SqlConnectionStringBuilderHelper().GetBuilder(connectionString);
+            var builder = SqlConnectionStringBuilderHelper.GetBuilder(connectionString);
 
             var database = builder.InitialCatalog;
             if (string.IsNullOrEmpty(database) && !string.IsNullOrEmpty(builder.AttachDBFilename))

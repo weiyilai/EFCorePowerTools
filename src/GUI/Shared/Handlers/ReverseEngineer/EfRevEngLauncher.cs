@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using EFCorePowerTools.Extensions;
 using RevEng.Common;
@@ -19,7 +20,6 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
         private readonly string revengRoot;
         private readonly string exeName;
         private readonly string zipName;
-        private readonly ResultDeserializer resultDeserializer;
 
         public EfRevEngLauncher(ReverseEngineerCommandOptions options, CodeGenerationMode codeGenerationMode)
         {
@@ -35,12 +35,12 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
                     revengVersion = "6";
                     break;
 
-                case CodeGenerationMode.EFCore7:
-                    revengVersion = "7";
-                    break;
-
                 case CodeGenerationMode.EFCore8:
                     revengVersion = "8";
+                    break;
+
+                case CodeGenerationMode.EFCore9:
+                    revengVersion = "9";
                     break;
 
                 default:
@@ -54,7 +54,6 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             revengRoot = revengFolder;
 
             revengFolder += versionSuffix;
-            resultDeserializer = new ResultDeserializer();
         }
 
         public static async Task<ReverseEngineerResult> LaunchExternalRunnerAsync(ReverseEngineerOptions options, CodeGenerationMode codeGenerationMode)
@@ -63,7 +62,7 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             if (!databaseObjects.Exists(t => t.ObjectType == ObjectType.Table))
             {
                 // No tables selected, so add a dummy table in order to generate an empty DbContext
-                databaseObjects.Add(new SerializationTableModel($"Dummy_{new Guid(GuidList.guidDbContextPackagePkgString)}", ObjectType.Table, null));
+                databaseObjects.Add(new SerializationTableModel($"Dummy_{new Guid(GuidList.guidDbContextPackagePkgString)}", ObjectType.Table, null, null));
             }
 
             var commandOptions = new ReverseEngineerCommandOptions
@@ -82,13 +81,14 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
                 UseSchemaFolders = options.UseSchemaFolders,
                 ProjectPath = options.ProjectPath,
                 ProjectRootNamespace = options.ProjectRootNamespace,
-                SelectedHandlebarsLanguage = options.SelectedHandlebarsLanguage,
                 SelectedToBeGenerated = options.SelectedToBeGenerated,
                 Tables = databaseObjects,
                 UseDatabaseNames = options.UseDatabaseNames,
                 UseFluentApiOnly = options.UseFluentApiOnly,
                 UseHandleBars = options.UseHandleBars,
+                SelectedHandlebarsLanguage = options.SelectedHandlebarsLanguage,
                 UseT4 = options.UseT4,
+                UseT4Split = options.UseT4Split,
                 T4TemplatePath = options.T4TemplatePath != null ? PathHelper.GetAbsPath(options.T4TemplatePath, options.ProjectPath) : null,
                 UseInflector = options.UseInflector,
                 UseLegacyPluralizer = options.UseLegacyPluralizer,
@@ -108,11 +108,13 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
                 OptionsPath = options.OptionsPath,
                 MergeDacpacs = AdvancedOptions.Instance.MergeDacpacs,
                 UseLegacyResultSetDiscovery = AdvancedOptions.Instance.UseLegacyResultSetDiscovery,
-                UseAsyncCalls = AdvancedOptions.Instance.PreferAsyncCalls,
+                UseAsyncCalls = options.UseAsyncStoredProcedureCalls,
                 PreserveCasingWithRegex = options.PreserveCasingWithRegex,
                 UseDateOnlyTimeOnly = options.UseDateOnlyTimeOnly,
                 UseSchemaNamespaces = options.UseSchemaNamespaces,
                 UseDecimalDataAnnotation = options.UseDecimalDataAnnotationForSprocResult,
+                UsePrefixNavigationNaming = options.UsePrefixNavigationNaming,
+                UseDatabaseNamesForRoutines = options.UseDatabaseNamesForRoutines,
             };
 
             var launcher = new EfRevEngLauncher(commandOptions, codeGenerationMode);
@@ -131,16 +133,47 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             return await GetTablesInternalAsync(arguments);
         }
 
-        public async Task<string> GetDgmlAsync(string connectionString, DatabaseType databaseType, List<string> schemaList)
+        public async Task<string> GetDiagramAsync(string connectionString, DatabaseType databaseType, List<string> schemaList)
         {
-            var arguments = "dgml " + ((int)databaseType).ToString() + " \"" + connectionString.Replace("\"", "\\\"") + "\" \"" + string.Join(",", schemaList) + "\"";
+            var option = "dgml ";
+
+            var arguments = option + ((int)databaseType).ToString() + " \"" + connectionString.Replace("\"", "\\\"") + "\" \"" + string.Join(",", schemaList) + "\"";
 
             if (schemaList.Count == 0)
             {
-                arguments = "dgml " + ((int)databaseType).ToString() + " \"" + connectionString.Replace("\"", "\\\"") + "\"";
+                arguments = option + ((int)databaseType).ToString() + " \"" + connectionString.Replace("\"", "\\\"") + "\"";
             }
 
-            var filePath = await GetDgmlInternalAsync(arguments);
+            var filePath = await GetDiagramInternalAsync(arguments);
+
+            return filePath;
+        }
+
+        public async Task<string> GetErDiagramAsync(string optionsPath, string connectionString)
+        {
+            var arguments = "erdiagram " + " \"" + optionsPath.Replace("\"", "\\\"") + "\" " + " \"" + connectionString.Replace("\"", "\\\"") + "\" ";
+
+            var filePath = await GetDiagramInternalAsync(arguments);
+
+            return filePath;
+        }
+
+        public async Task<string> GetReportPathAsync(string path, bool isConnectionString)
+        {
+            var option = isConnectionString ? "dacpacreportextract " : "dacpacreport ";
+
+            var arguments = option + " \"" + path.Replace("\"", "\\\"") + "\"";
+
+            var filePath = await GetDiagramInternalAsync(arguments);
+
+            return filePath;
+        }
+
+        public async Task<string> GetDabConfigPathAsync(string optionsPath, string connectionString)
+        {
+            var arguments = "dabbuilder " + " \"" + optionsPath.Replace("\"", "\\\"") + "\" " + " \"" + connectionString.Replace("\"", "\\\"") + "\" ";
+
+            var filePath = await GetDiagramInternalAsync(arguments);
 
             return filePath;
         }
@@ -150,13 +183,22 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             return await ProcessLauncher.RunProcessAsync(startInfo);
         }
 
-        private async Task<string> GetDgmlInternalAsync(string arguments)
+        private async Task<string> GetDiagramInternalAsync(string arguments)
         {
             var startInfo = await CreateStartInfoAsync(arguments);
 
+            try
+            {
+                File.WriteAllText(Path.Combine(Path.GetTempPath(), "efrevengparams.txt"), startInfo.Arguments, Encoding.UTF8);
+            }
+            catch
+            {
+                // Ignore
+            }
+
             var standardOutput = await RunProcessAsync(startInfo);
 
-            return resultDeserializer.BuildDgmlResult(standardOutput);
+            return ResultDeserializer.BuildDiagramResult(standardOutput);
         }
 
         private async Task<List<TableModel>> GetTablesInternalAsync(string arguments)
@@ -165,14 +207,15 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
 
             var standardOutput = await RunProcessAsync(startInfo);
 
-            return resultDeserializer.BuildTableResult(standardOutput);
+            return ResultDeserializer.BuildTableResult(standardOutput);
         }
 
         private async Task<ProcessStartInfo> CreateStartInfoAsync(string arguments)
         {
             string version = "6.0";
 
-            if (codeGenerationMode == CodeGenerationMode.EFCore8)
+            if (codeGenerationMode == CodeGenerationMode.EFCore8
+                || codeGenerationMode == CodeGenerationMode.EFCore9)
             {
                 version = "8.0";
             }
@@ -195,7 +238,7 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
         private async Task<ReverseEngineerResult> GetOutputAsync()
         {
             var path = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()) + ".json";
-            File.WriteAllText(path, options.Write());
+            File.WriteAllText(path, options.Write(), Encoding.UTF8);
 
             var launchPath = DropNetCoreFiles();
 
@@ -216,7 +259,7 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
                 // Ignore
             }
 
-            return resultDeserializer.BuildResult(standardOutput);
+            return ResultDeserializer.BuildResult(standardOutput);
         }
 
         private async Task<bool> IsDotnetInstalledAsync(string version)

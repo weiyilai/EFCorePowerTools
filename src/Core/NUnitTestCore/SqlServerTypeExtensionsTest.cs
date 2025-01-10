@@ -1,6 +1,6 @@
 ﻿using System;
 using NUnit.Framework;
-using RevEng.Core;
+using RevEng.Core.Routines.Extensions;
 
 namespace UnitTests
 {

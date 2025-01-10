@@ -29,6 +29,7 @@ using EFCorePowerTools.ViewModels;
 using GalaSoft.MvvmLight.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Data.Services;
 using Microsoft.VisualStudio.Shell;
 using RevEng.Common;
 
@@ -45,33 +46,38 @@ namespace EFCorePowerTools
         name: "Auto load based on rules",
         expression: "CSharpConfig & (SingleProject | MultipleProjects) ",
         termNames: new[] { "CSharpConfig", "SingleProject", "MultipleProjects" },
-        termValues: new[] { "ActiveProjectCapability:CSharp & CPS & !MSBuild.Sdk.SqlProj.BuildTSqlScript", VSConstants.UICONTEXT.SolutionHasSingleProject_string, VSConstants.UICONTEXT.SolutionHasMultipleProjects_string })]
+        termValues: new[] { "ActiveProjectCapability:CSharp & CPS", VSConstants.UICONTEXT.SolutionHasSingleProject_string, VSConstants.UICONTEXT.SolutionHasMultipleProjects_string })]
     [ProvideMenuResource("Menus.ctmenu", 1)]
     public sealed class EFCorePowerToolsPackage : AsyncPackage
     {
         public const string UIContextGuid = "BB60393B-FCF6-4807-AA92-B7C1019AA827";
 
         private readonly ReverseEngineerHandler reverseEngineerHandler;
-        private readonly ModelAnalyzerHandler modelAnalyzerHandler;
         private readonly AboutHandler aboutHandler;
-        private readonly DgmlNugetHandler dgmlNugetHandler;
-        private readonly MigrationsHandler migrationsHandler;
         private readonly CompareHandler compareHandler;
-        private readonly ServerDgmlHandler serverDgmlHandler;
+        private readonly DatabaseDiagramHandler databaseDiagramHandler;
+        private readonly DabBuilderHandler dabBuilderHandler;
+        private readonly ErDiagramHandler erDiagramHandler;
+        private readonly CliHandler cliHandler;
         private IServiceProvider extensionServices;
 
         public EFCorePowerToolsPackage()
         {
             reverseEngineerHandler = new ReverseEngineerHandler(this);
-            modelAnalyzerHandler = new ModelAnalyzerHandler(this);
             aboutHandler = new AboutHandler(this);
-            dgmlNugetHandler = new DgmlNugetHandler();
-            migrationsHandler = new MigrationsHandler(this);
             compareHandler = new CompareHandler(this);
-            serverDgmlHandler = new ServerDgmlHandler(this);
+            databaseDiagramHandler = new DatabaseDiagramHandler(this);
+            dabBuilderHandler = new DabBuilderHandler(this);
+            erDiagramHandler = new ErDiagramHandler(this);
+            cliHandler = new CliHandler(this);
         }
 
-        internal void LogError(List<string> statusMessages, Exception exception)
+        internal static async Task<Version> VisualStudioVersionAsync()
+        {
+            return await VS.Shell.GetVsVersionAsync();
+        }
+
+        internal static void LogError(List<string> statusMessages, Exception exception)
         {
             ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
@@ -102,18 +108,19 @@ namespace EFCorePowerTools
             });
         }
 
+        internal EnvDTE80.DTE2 Dte2()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            return GetService(typeof(EnvDTE.DTE)) as EnvDTE80.DTE2;
+        }
+
         internal TView GetView<TView>()
             where TView : IView
         {
             return extensionServices.GetService<TView>();
         }
 
-        internal async Task<Version> VisualStudioVersionAsync()
-        {
-            return await VS.Shell.GetVsVersionAsync();
-        }
-
-        protected override async System.Threading.Tasks.Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
+        protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
             try
             {
@@ -127,146 +134,173 @@ namespace EFCorePowerTools
 
                 if (oleMenuCommandService != null)
                 {
-                    var menuCommandId3 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidDgmlBuild);
-
-                    var menuItem3 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId3);
-                    oleMenuCommandService.AddCommand(menuItem3);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDgmlBuild)));
 
-                    var menuCommandId5 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidReverseEngineerCodeFirst);
-                    var menuItem5 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId5);
-                    oleMenuCommandService.AddCommand(menuItem5);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidReverseEngineerCodeFirst)));
 
-                    var menuCommandId6 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidT4Drop);
-                    var menuItem6 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId6);
-                    oleMenuCommandService.AddCommand(menuItem6);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidReverseEngineerCodeFirstRefresh)));
 
-                    var menuCommandId7 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidAbout);
-                    var menuItem7 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId7);
-                    oleMenuCommandService.AddCommand(menuItem7);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidT4Drop)));
 
-                    var menuCommandId8 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidDgmlNuget);
-                    var menuItem8 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId8);
-                    oleMenuCommandService.AddCommand(menuItem8);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidAbout)));
 
-                    var menuCommandId9 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidSqlBuild);
-                    var menuItem9 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId9);
-                    oleMenuCommandService.AddCommand(menuItem9);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDgmlNuget)));
 
-                    var menuCommandId10 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidDebugViewBuild);
-                    var menuItem10 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId10);
-                    oleMenuCommandService.AddCommand(menuItem10);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidSqlBuild)));
 
-                    var menuCommandId11 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidMigrationStatus);
-                    var menuItem11 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId11);
-                    oleMenuCommandService.AddCommand(menuItem11);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDebugViewBuild)));
 
-                    var menuCommandId12 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidDbCompare);
-                    var menuItem12 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId12);
-                    oleMenuCommandService.AddCommand(menuItem12);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDbCompare)));
 
-                    var menuCommandId13 = new CommandID(
-                        GuidList.GuidSqlprojCreate,
-                        (int)PkgCmdIDList.cmdidSqlprojCreate);
-                    var menuItem13 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnSqlProjectContextMenuInvokeHandler,
                         null,
                         OnSqlProjectMenuBeforeQueryStatus,
-                        menuCommandId13);
-                    oleMenuCommandService.AddCommand(menuItem13);
+                        new CommandID(
+                            GuidList.GuidSqlprojContext,
+                            (int)PkgCmdIDList.cmdidSqlprojCreate)));
 
-                    var menuCommandId14 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidDbDgml);
-                    var menuItem14 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnSqlProjectContextMenuInvokeHandler,
+                        null,
+                        OnSqlProjectMenuBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidSqlprojAnalyze)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnServerExplorerDatabaseMenuInvokeHandler,
+                        null,
+                        OnServerExplorerDatabaseBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidServerExplorerMenu,
+                            (int)PkgCmdIDList.cmdidServerExplorerDiagram)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnServerExplorerDatabaseMenuInvokeHandler,
+                        null,
+                        OnServerExplorerDatabaseBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidServerExplorerMenu,
+                            (int)PkgCmdIDList.cmdidServerExplorerReverseEngineer)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnServerExplorerDatabaseMenuInvokeHandler,
+                        null,
+                        OnServerExplorerDatabaseBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidServerExplorerMenu,
+                            (int)PkgCmdIDList.cmdidServerExplorerAnalyze)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId14);
-                    oleMenuCommandService.AddCommand(menuItem14);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDbDgml)));
 
-                    var menuCommandId15 = new CommandID(
-                        GuidList.GuidDbContextPackageCmdSet,
-                        (int)PkgCmdIDList.cmdidOptions);
-                    var menuItem15 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnProjectContextMenuInvokeHandler,
                         null,
                         OnProjectMenuBeforeQueryStatus,
-                        menuCommandId15);
-                    oleMenuCommandService.AddCommand(menuItem15);
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidOptions)));
 
-                    var menuCommandId1101 = new CommandID(
-                        GuidList.GuidReverseEngineerMenu,
-                        (int)PkgCmdIDList.cmdidReverseEngineerEdit);
-                    var menuItem251 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnProjectContextMenuInvokeHandler,
+                        null,
+                        OnProjectMenuBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidDbErDiagram)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnProjectContextMenuInvokeHandler,
+                        null,
+                        OnProjectMenuBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidDbContextPackageCmdSet,
+                            (int)PkgCmdIDList.cmdidReverseEngineerDab)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnReverseEngineerConfigFileMenuInvokeHandler,
                         null,
                         OnReverseEngineerConfigFileMenuBeforeQueryStatus,
-                        menuCommandId1101);
-                    oleMenuCommandService.AddCommand(menuItem251);
+                        new CommandID(
+                            GuidList.GuidReverseEngineerMenu,
+                            (int)PkgCmdIDList.cmdidReverseEngineerEdit)));
 
-                    var menuCommandId1102 = new CommandID(
-                        GuidList.GuidReverseEngineerMenu,
-                        (int)PkgCmdIDList.cmdidReverseEngineerRefresh);
-                    var menuItem252 = new OleMenuCommand(
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
                         OnReverseEngineerConfigFileMenuInvokeHandler,
                         null,
                         OnReverseEngineerConfigFileMenuBeforeQueryStatus,
-                        menuCommandId1102);
-                    oleMenuCommandService.AddCommand(menuItem252);
+                        new CommandID(
+                            GuidList.GuidReverseEngineerMenu,
+                            (int)PkgCmdIDList.cmdidReverseEngineerRefresh)));
+
+                    oleMenuCommandService.AddCommand(new OleMenuCommand(
+                        OnReverseEngineerConfigFileMenuInvokeHandler,
+                        null,
+                        OnReverseEngineerConfigFileMenuBeforeQueryStatus,
+                        new CommandID(
+                            GuidList.GuidReverseEngineerMenu,
+                            (int)PkgCmdIDList.cmdidDabStart)));
                 }
 
                 typeof(Microsoft.Xaml.Behaviors.Behavior).ToString();
@@ -292,19 +326,48 @@ namespace EFCorePowerTools
 
         private static bool IsConfigFile(string itemName)
         {
-            return itemName != null &&
-                itemName.StartsWith("efpt.", StringComparison.OrdinalIgnoreCase) &&
-                itemName.EndsWith(".config.json", StringComparison.OrdinalIgnoreCase);
+            return itemName != null
+                && ((itemName.StartsWith("efpt.", StringComparison.OrdinalIgnoreCase)
+                    && itemName.EndsWith(".config.json", StringComparison.OrdinalIgnoreCase))
+                || itemName.Equals("efcpt-config.json", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsCliConfigFile(string itemName)
+        {
+            return itemName != null
+                && itemName.Equals("efcpt-config.json", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDabConfigFile(string itemName)
+        {
+            return itemName != null
+                && itemName.Equals("dab-config.json", StringComparison.OrdinalIgnoreCase);
         }
 
 #pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnReverseEngineerConfigFileMenuBeforeQueryStatus(object sender, EventArgs e)
+        private static async void OnReverseEngineerConfigFileMenuBeforeQueryStatus(object sender, EventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
         {
-            var menuCommand = sender as MenuCommand;
+            var menuCommand = sender as OleMenuCommand;
             if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
             {
                 return;
+            }
+
+            switch ((uint)menuCommand.CommandID.ID)
+            {
+                case PkgCmdIDList.cmdidReverseEngineerEdit:
+                    menuCommand.Text = ButtonLocale.cmdidReverseEngineerEdit;
+                    break;
+                case PkgCmdIDList.cmdidReverseEngineerRefresh:
+                    menuCommand.Text = ButtonLocale.cmdidReverseEngineerRefresh;
+                    break;
+                case PkgCmdIDList.cmdidDabStart:
+                    menuCommand.Text = "Start Data API Builder";
+                    break;
+
+                default:
+                    break;
             }
 
             menuCommand.Visible = false;
@@ -323,67 +386,38 @@ namespace EFCorePowerTools
                 return;
             }
 
-            menuCommand.Visible = IsConfigFile(item.Text) && project.IsCSharpProject()
-                && (await project.IsNet60OrHigherAsync() || await project.IsNetStandardAsync());
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDabStart)
+            {
+                menuCommand.Visible = IsDabConfigFile(item.Text);
+                return;
+            }
+
+            menuCommand.Visible = IsConfigFile(item.Text) && (await project.CanUseReverseEngineerAsync());
         }
 
 #pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnProjectMenuBeforeQueryStatus(object sender, EventArgs e)
+        private static async void OnSqlProjectMenuBeforeQueryStatus(object sender, EventArgs e)
 #pragma warning restore VSTHRD100 // Avoid async void methods
         {
-            if (!(sender is MenuCommand menuCommand))
-            {
-                return;
-            }
-
-            menuCommand.Visible = false;
-
-            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbDgml
-                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidAbout
-                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidOptions)
-            {
-                menuCommand.Visible = true;
-                return;
-            }
-
-            var project = await VS.Solutions.GetActiveProjectAsync();
-
-            if (project == null)
-            {
-                return;
-            }
-
-            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirst
-                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidT4Drop)
-            {
-                menuCommand.Visible = (await project.IsNet60OrHigherAsync() || await project.IsNetStandardAsync())
-                    && !project.IsMsBuildSqlProjProject();
-                return;
-            }
-
-            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild ||
-                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlNuget ||
-                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild ||
-                menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild ||
-                menuCommand.CommandID.ID == PkgCmdIDList.cmdidMigrationStatus ||
-                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
-            {
-                menuCommand.Visible = await project.IsNet60OrHigherAsync()
-                    && await project.IsInstalledAsync(new NuGetPackage { PackageId = "Microsoft.EntityFrameworkCore" });
-            }
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnSqlProjectMenuBeforeQueryStatus(object sender, EventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            var menuCommand = sender as MenuCommand;
+            var menuCommand = sender as OleMenuCommand;
 
             if (menuCommand == null)
             {
                 return;
             }
 
+            switch ((uint)menuCommand.CommandID.ID)
+            {
+                case PkgCmdIDList.cmdidSqlprojCreate:
+                    menuCommand.Text = ButtonLocale.cmdidSqlprojCreate;
+                    break;
+                case PkgCmdIDList.cmdidSqlprojAnalyze:
+                    menuCommand.Text = ButtonLocale.cmdidSqlprojAnalyze;
+                    break;
+                default:
+                    break;
+            }
+
             menuCommand.Visible = false;
 
             var project = await VS.Solutions.GetActiveProjectAsync();
@@ -393,185 +427,9 @@ namespace EFCorePowerTools
                 return;
             }
 
-            if (!project.FullPath.EndsWith(".sqlproj", StringComparison.OrdinalIgnoreCase))
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlprojCreate)
             {
-                return;
-            }
-
-            var candidateProjects = (await VS.Solutions.GetAllProjectsAsync())
-                .Where(p => p.IsCSharpProject())
-                .Where(p => p.Children.All(c => !c.Text.Equals("efpt.config.json", StringComparison.OrdinalIgnoreCase))).ToList();
-
-            if (!candidateProjects.Any())
-            {
-                return;
-            }
-
-            menuCommand.Visible = true;
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnReverseEngineerConfigFileMenuInvokeHandler(object sender, EventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                var menuCommand = sender as MenuCommand;
-                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
-                {
-                    return;
-                }
-
-                var item = await VS.Solutions.GetActiveItemAsync();
-
-                if (item == null)
-                {
-                    return;
-                }
-
-                if (!IsConfigFile(item.Text))
-                {
-                    return;
-                }
-
-                Project project = FindProject(item);
-                if (project == null)
-                {
-                    return;
-                }
-
-                string filename = item.FullPath;
-
-                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerEdit)
-                {
-                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(project, filename, false);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerRefresh)
-                {
-                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(project, filename, true);
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError(new List<string>(), ex);
-            }
-        }
-
-        private Project FindProject(SolutionItem item)
-        {
-            var parent = item.Parent;
-            while (parent != null && !(parent is Project))
-            {
-                parent = parent.Parent;
-            }
-
-            return parent as Project;
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnProjectContextMenuInvokeHandler(object sender, EventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                var menuCommand = sender as MenuCommand;
-                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
-                {
-                    return;
-                }
-
-                var project = await VS.Solutions.GetActiveProjectAsync();
-                if (project == null)
-                {
-                    return;
-                }
-
-                string path = null;
-
-                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild ||
-                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild ||
-                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild ||
-                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidMigrationStatus ||
-                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
-                {
-                    path = await LocateProjectAssemblyPathAsync(project);
-                    if (path == null)
-                    {
-                        return;
-                    }
-                }
-
-                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirst)
-                {
-                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync();
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlNuget)
-                {
-                    await dgmlNugetHandler.InstallDgmlNugetAsync(project);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidT4Drop)
-                {
-                    dgmlNugetHandler.UnzipT4Templates(project);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild)
-                {
-                    await modelAnalyzerHandler.GenerateAsync(path, project, GenerationType.Dgml);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild)
-                {
-                    await modelAnalyzerHandler.GenerateAsync(path, project, GenerationType.Ddl);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild)
-                {
-                    await modelAnalyzerHandler.GenerateAsync(path, project, GenerationType.DebugView);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidMigrationStatus)
-                {
-                    await migrationsHandler.ManageMigrationsAsync(path, project);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidAbout)
-                {
-                    aboutHandler.ShowDialog();
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidOptions)
-                {
-                    ShowOptionPage(typeof(OptionsProvider.AdvancedOptions));
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
-                {
-                    await compareHandler.HandleComparisonAsync(path, project);
-                }
-                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbDgml)
-                {
-                    await serverDgmlHandler.GenerateAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogError(new List<string>(), ex);
-            }
-        }
-
-#pragma warning disable VSTHRD100 // Avoid async void methods
-        private async void OnSqlProjectContextMenuInvokeHandler(object sender, EventArgs e)
-#pragma warning restore VSTHRD100 // Avoid async void methods
-        {
-            try
-            {
-                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-
-                var menuCommand = sender as MenuCommand;
-                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
-                {
-                    return;
-                }
-
-                var sqlproject = await VS.Solutions.GetActiveProjectAsync();
-                if (sqlproject == null)
+                if (!(await project.IsSqlDatabaseProjectAsync()))
                 {
                     return;
                 }
@@ -585,27 +443,35 @@ namespace EFCorePowerTools
                     return;
                 }
 
-                var result = await reverseEngineerHandler.DropSqlprojOptionsAsync(candidateProjects, sqlproject.FullPath);
-
-                if (result.OptionsPath != null && result.Project != null)
-                {
-                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(result.Project, result.OptionsPath, false, true);
-                }
-                else if (result.OptionsPath == null && result.Project != null)
-                {
-                    await VS.MessageBox.ShowAsync(
-                        $"Project '{result.Project.Name}' already contains an EF Core Power Tools config file (efpt.config.json).",
-                        icon: Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_WARNING,
-                        buttons: Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
-                }
+                menuCommand.Visible = true;
             }
-            catch (Exception ex)
+
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlprojAnalyze
+                && await project.IsSqlDatabaseProjectAsync())
             {
-                LogError(new List<string>(), ex);
+                menuCommand.Visible = true;
             }
         }
 
-        private async Task<string> LocateProjectAssemblyPathAsync(Project project)
+        private static void HandleShowMessageBoxMessage(ShowMessageBoxMessage msg)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            VSHelper.ShowMessage(msg.Content);
+        }
+
+        private static Project FindProject(SolutionItem item)
+        {
+            var parent = item.Parent;
+            while (parent != null && !(parent is Project))
+            {
+                parent = parent.Parent;
+            }
+
+            return parent as Project;
+        }
+
+        private static async Task<string> LocateProjectAssemblyPathAsync(Project project)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -634,6 +500,519 @@ namespace EFCorePowerTools
             return null;
         }
 
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnProjectMenuBeforeQueryStatus(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            if (!(sender is OleMenuCommand menuCommand))
+            {
+                return;
+            }
+
+            menuCommand.Visible = false;
+
+            switch ((uint)menuCommand.CommandID.ID)
+            {
+                case PkgCmdIDList.cmdidAbout:
+                    menuCommand.Text = ButtonLocale.cmdidAbout;
+                    break;
+                case PkgCmdIDList.cmdidDbCompare:
+                    menuCommand.Text = ButtonLocale.cmdidDbCompare;
+                    break;
+                case PkgCmdIDList.cmdidDbErDiagram:
+                    menuCommand.Text = ButtonLocale.cmdidDbErDiagram;
+                    break;
+                case PkgCmdIDList.cmdidDbDgml:
+                    menuCommand.Text = ButtonLocale.cmdidDbDgml;
+                    break;
+                case PkgCmdIDList.cmdidDebugViewBuild:
+                    menuCommand.Text = ButtonLocale.cmdidDebugViewBuild;
+                    break;
+                case PkgCmdIDList.cmdidDgmlBuild:
+                    menuCommand.Text = ButtonLocale.cmdidDgmlBuild;
+                    break;
+                case PkgCmdIDList.cmdidDgmlNuget:
+                    menuCommand.Text = ButtonLocale.cmdidDgmlNuget;
+                    break;
+                case PkgCmdIDList.cmdidOptions:
+                    menuCommand.Text = ButtonLocale.cmdidOptions;
+                    break;
+                case PkgCmdIDList.cmdidReverseEngineerCodeFirst:
+                    menuCommand.Text = ButtonLocale.cmdidReverseEngineerCodeFirst;
+                    break;
+                case PkgCmdIDList.cmdidReverseEngineerCodeFirstRefresh:
+                    menuCommand.Text = ButtonLocale.cmdidReverseEngineerCodeFirstRefresh;
+                    break;
+                case PkgCmdIDList.cmdidSqlBuild:
+                    menuCommand.Text = ButtonLocale.cmdidSqlBuild;
+                    break;
+                case PkgCmdIDList.cmdidT4Drop:
+                    menuCommand.Text = ButtonLocale.cmdidT4Drop;
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidAbout
+                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidOptions
+                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbDgml
+                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbErDiagram
+                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerDab)
+            {
+                menuCommand.Visible = true;
+                return;
+            }
+
+            var project = await VS.Solutions.GetActiveProjectAsync();
+
+            if (project == null)
+            {
+                return;
+            }
+
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirst
+                || menuCommand.CommandID.ID == PkgCmdIDList.cmdidT4Drop)
+            {
+                menuCommand.Visible = await project.CanUseReverseEngineerAsync();
+                return;
+            }
+
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirstRefresh)
+            {
+                await JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                menuCommand.Visible = await project.CanUseReverseEngineerAsync()
+                    && project.GetConfigFiles().Count == 1;
+                return;
+            }
+
+            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild ||
+                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlNuget ||
+                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild ||
+                menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild ||
+                menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
+            {
+                menuCommand.Visible = await project.IsNet60OrHigherAsync()
+                    && await project.IsInstalledAsync(new NuGetPackage { PackageId = "Microsoft.EntityFrameworkCore" });
+            }
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnServerExplorerDatabaseBeforeQueryStatus(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            var menuCommand = sender as OleMenuCommand;
+
+            if (menuCommand == null)
+            {
+                return;
+            }
+
+            switch ((uint)menuCommand.CommandID.ID)
+            {
+                case PkgCmdIDList.cmdidServerExplorerReverseEngineer:
+                    menuCommand.Text = ButtonLocale.cmdidServerExplorerReverseEngineer;
+                    break;
+                case PkgCmdIDList.cmdidServerExplorerDiagram:
+                    menuCommand.Text = ButtonLocale.cmdidServerExplorerDiagram;
+                    break;
+                case PkgCmdIDList.cmdidServerExplorerAnalyze:
+                    menuCommand.Text = ButtonLocale.cmdidServerExplorerAnalyze;
+                    break;
+                default:
+                    break;
+            }
+
+            menuCommand.Visible = false;
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            var uih = Dte2().ToolWindows.GetToolWindow(EnvDTE.Constants.vsWindowKindServerExplorer) as EnvDTE.UIHierarchy;
+            var selectedItems = (Array)uih.SelectedItems;
+
+            if (selectedItems != null)
+            {
+                var connectionName = ((EnvDTE.UIHierarchyItem)selectedItems.GetValue(0)).Name;
+
+                if (string.IsNullOrEmpty(connectionName))
+                {
+                    return;
+                }
+
+                var dataConnectionsService = await VS.GetServiceAsync<IVsDataExplorerConnectionManager, IVsDataExplorerConnectionManager>();
+                if (dataConnectionsService.Connections.TryGetValue(connectionName, out IVsDataExplorerConnection explorerConnection))
+                {
+                    var connection = explorerConnection.Connection;
+
+                    if (connection == null)
+                    {
+                        return;
+                    }
+
+                    if (VsDataHelper.SupportedProviders.Contains(connection.Provider))
+                    {
+                        if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerReverseEngineer)
+                        {
+                            if ((await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                            {
+                                return;
+                            }
+
+                            var project = await VS.Solutions.GetActiveProjectAsync();
+                            if (project == null)
+                            {
+                                return;
+                            }
+
+                            menuCommand.Visible = await project.CanUseReverseEngineerAsync();
+                            return;
+                        }
+
+                        if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerDiagram)
+                        {
+                            menuCommand.Visible = true;
+                            return;
+                        }
+
+                        if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerAnalyze)
+                        {
+                            menuCommand.Visible = VsDataHelper.SqlServerProviders.Contains(connection.Provider);
+                        }
+                    }
+                }
+            }
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnReverseEngineerConfigFileMenuInvokeHandler(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var menuCommand = sender as MenuCommand;
+                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                {
+                    return;
+                }
+
+                var item = await VS.Solutions.GetActiveItemAsync();
+
+                if (item == null)
+                {
+                    return;
+                }
+
+                Project project = FindProject(item);
+                if (project == null)
+                {
+                    return;
+                }
+
+                string filename = item.FullPath;
+
+                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerEdit)
+                {
+                    if (!IsConfigFile(item.Text))
+                    {
+                        return;
+                    }
+
+                    if (IsCliConfigFile(item.Text))
+                    {
+                        await CliHandler.EditConfigAsync(project);
+                    }
+                    else
+                    {
+                        await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(project, filename, false);
+                    }
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerRefresh)
+                {
+                    if (!IsConfigFile(item.Text))
+                    {
+                        return;
+                    }
+
+                    if (IsCliConfigFile(item.Text))
+                    {
+                        await cliHandler.RunCliAsync(project);
+                    }
+                    else
+                    {
+                        await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(project, filename, true);
+                    }
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDabStart)
+                {
+                    if (!IsDabConfigFile(item.Text))
+                    {
+                        return;
+                    }
+
+                    DabBuilderHandler.LaunchDab(item.FullPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(new List<string>(), ex);
+            }
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnProjectContextMenuInvokeHandler(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var menuCommand = sender as MenuCommand;
+                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                {
+                    return;
+                }
+
+                var project = await VS.Solutions.GetActiveProjectAsync();
+                if (project == null)
+                {
+                    return;
+                }
+
+                string path = null;
+
+                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild ||
+                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild ||
+                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild ||
+                    menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
+                {
+                    path = await LocateProjectAssemblyPathAsync(project);
+                    if (path == null)
+                    {
+                        return;
+                    }
+                }
+
+                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirst)
+                {
+                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync();
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerCodeFirstRefresh)
+                {
+                    var configs = project.GetConfigFiles();
+                    if (configs.Count != 1)
+                    {
+                        return;
+                    }
+
+                    await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(project, configs[0], true);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidReverseEngineerDab)
+                {
+                    await dabBuilderHandler.BuildDabConfigAsync(project);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlNuget)
+                {
+                    await DgmlNugetHandler.InstallDgmlNugetAsync(project);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidT4Drop)
+                {
+                    DgmlNugetHandler.UnzipT4Templates(project);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDgmlBuild)
+                {
+                    await ModelAnalyzerHandler.GenerateAsync(path, project, GenerationType.Dgml);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlBuild)
+                {
+                    await ModelAnalyzerHandler.GenerateAsync(path, project, GenerationType.Ddl);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDebugViewBuild)
+                {
+                    await ModelAnalyzerHandler.GenerateAsync(path, project, GenerationType.DebugView);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidAbout)
+                {
+                    aboutHandler.ShowDialog();
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidOptions)
+                {
+                    ShowOptionPage(typeof(OptionsProvider.AdvancedOptions));
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbCompare)
+                {
+                    await compareHandler.HandleComparisonAsync(path, project);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbErDiagram)
+                {
+                    await erDiagramHandler.BuildErDiagramAsync(project, string.Empty);
+                }
+                else if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidDbDgml)
+                {
+                    string connectionName = null;
+                    if (await project.IsSqlDatabaseProjectAsync())
+                    {
+                        connectionName = project.FullPath;
+
+                        if (await project.IsMsBuildSqlProjOrMsBuildSqlProjectAsync())
+                        {
+                            connectionName = await project.GetDacpacPathAsync();
+                        }
+                    }
+
+                    await databaseDiagramHandler.GenerateAsync(connectionName);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(new List<string>(), ex);
+            }
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnSqlProjectContextMenuInvokeHandler(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var menuCommand = sender as MenuCommand;
+                if (menuCommand == null || (await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                {
+                    return;
+                }
+
+                var sqlproject = await VS.Solutions.GetActiveProjectAsync();
+                if (sqlproject == null)
+                {
+                    return;
+                }
+
+                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlprojCreate)
+                {
+                    var candidateProjects = (await VS.Solutions.GetAllProjectsAsync())
+                        .Where(p => p.IsCSharpProject())
+                        .Where(p => p.Children.All(c => !c.Text.Equals("efpt.config.json", StringComparison.OrdinalIgnoreCase))).ToList();
+
+                    if (!candidateProjects.Any())
+                    {
+                        return;
+                    }
+
+                    var result = await reverseEngineerHandler.DropSqlprojOptionsAsync(candidateProjects, sqlproject.FullPath);
+
+                    if (result.OptionsPath != null && result.Project != null)
+                    {
+                        await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(result.Project, result.OptionsPath, false, true);
+                    }
+                    else if (result.OptionsPath == null && result.Project != null)
+                    {
+                        await VS.MessageBox.ShowAsync(
+                            $"Project '{result.Project.Name}' already contains an EF Core Power Tools config file (efpt.config.json).",
+                            icon: Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_WARNING,
+                            buttons: Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
+                    }
+                }
+
+                if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidSqlprojAnalyze)
+                {
+                    await DacpacAnalyzerHandler.GenerateAsync(sqlproject.FullPath, isConnectionString: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(new List<string>(), ex);
+            }
+        }
+
+#pragma warning disable VSTHRD100 // Avoid async void methods
+        private async void OnServerExplorerDatabaseMenuInvokeHandler(object sender, EventArgs e)
+#pragma warning restore VSTHRD100 // Avoid async void methods
+        {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+                var menuCommand = sender as MenuCommand;
+                if (menuCommand == null)
+                {
+                    return;
+                }
+
+                var uih = Dte2().ToolWindows.GetToolWindow(EnvDTE.Constants.vsWindowKindServerExplorer) as EnvDTE.UIHierarchy;
+                var selectedItems = (Array)uih.SelectedItems;
+
+                if (selectedItems != null)
+                {
+                    var connectionName = ((EnvDTE.UIHierarchyItem)selectedItems.GetValue(0)).Name;
+
+                    if (string.IsNullOrEmpty(connectionName))
+                    {
+                        return;
+                    }
+
+                    var dataConnectionsService = await VS.GetServiceAsync<IVsDataExplorerConnectionManager, IVsDataExplorerConnectionManager>();
+                    if (dataConnectionsService.Connections.TryGetValue(connectionName, out IVsDataExplorerConnection explorerConnection))
+                    {
+                        var connection = explorerConnection.Connection;
+
+                        if (connection == null)
+                        {
+                            return;
+                        }
+
+                        if (VsDataHelper.SupportedProviders.Contains(connection.Provider))
+                        {
+                            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerReverseEngineer)
+                            {
+                                if ((await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                                {
+                                    return;
+                                }
+
+                                var project = await VS.Solutions.GetActiveProjectAsync();
+                                if (project == null)
+                                {
+                                    return;
+                                }
+
+                                await reverseEngineerHandler.ReverseEngineerCodeFirstAsync(connectionName);
+                            }
+
+                            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerDiagram)
+                            {
+                                if ((await VS.Solutions.GetActiveItemsAsync()).Count() != 1)
+                                {
+                                    return;
+                                }
+
+                                var project = await VS.Solutions.GetActiveProjectAsync();
+                                if (project == null)
+                                {
+                                    return;
+                                }
+
+                                await erDiagramHandler.BuildErDiagramAsync(project, connectionName);
+                            }
+
+                            if (menuCommand.CommandID.ID == PkgCmdIDList.cmdidServerExplorerAnalyze)
+                            {
+                                await DacpacAnalyzerHandler.GenerateAsync(DataProtection.DecryptString(connection.EncryptedConnectionString), isConnectionString: true);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError(new List<string>(), ex);
+            }
+        }
+
         private IServiceProvider CreateServiceProvider()
         {
             var services = new ServiceCollection();
@@ -648,7 +1027,6 @@ namespace EFCorePowerTools
                     .AddTransient<IPickServerDatabaseDialog, PickServerDatabaseDialog>()
                     .AddTransient<IPickTablesDialog, PickTablesDialog>()
                     .AddTransient<IModelingOptionsDialog, EfCoreModelDialog>()
-                    .AddTransient<IMigrationOptionsDialog, EfCoreMigrationsDialog>()
                     .AddTransient<IPickSchemasDialog, PickSchemasDialog>()
                     .AddTransient<IPickConnectionDialog, ConnectionDialog>()
                     .AddTransient<IAdvancedModelingOptionsDialog, AdvancedModelingOptionsDialog>()
@@ -669,7 +1047,6 @@ namespace EFCorePowerTools
                     .AddSingleton<Func<ITableInformationViewModel>>(provider => () => new TableInformationViewModel(provider.GetService<IMessenger>()))
                     .AddSingleton<Func<IColumnInformationViewModel>>(provider => () => new ColumnInformationViewModel(provider.GetService<IMessenger>()))
                     .AddTransient<IModelingOptionsViewModel, ModelingOptionsViewModel>()
-                    .AddTransient<IMigrationOptionsViewModel, MigrationOptionsViewModel>()
                     .AddTransient<IPickSchemasViewModel, PickSchemasViewModel>()
                     .AddTransient<IAdvancedModelingOptionsViewModel, AdvancedModelingOptionsViewModel>()
                     .AddTransient<IObjectTreeViewModel, ObjectTreeViewModel>()
@@ -691,13 +1068,6 @@ namespace EFCorePowerTools
                     .AddSingleton<IDotNetAccess, DotNetAccess>();
 
             return services.BuildServiceProvider();
-        }
-
-        private void HandleShowMessageBoxMessage(ShowMessageBoxMessage msg)
-        {
-            ThreadHelper.ThrowIfNotOnUIThread();
-
-            VSHelper.ShowMessage(msg.Content);
         }
     }
 }

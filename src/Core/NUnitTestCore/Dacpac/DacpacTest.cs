@@ -5,6 +5,7 @@ using ErikEJ.EntityFrameworkCore.SqlServer.Scaffolding;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.EntityFrameworkCore.SqlServer.Metadata.Internal;
 using NUnit.Framework;
+using RevEng.Core.Abstractions;
 
 namespace UnitTests
 {
@@ -58,7 +59,7 @@ namespace UnitTests
         public void CanEnumerateSelectedQuirkObjects()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var tables = new List<string> { "[dbo].[FilteredIndexTable]", "[dbo].[DefaultComputedValues]" };
             var options = new DatabaseModelFactoryOptions(tables, new List<string>());
 
@@ -80,7 +81,7 @@ namespace UnitTests
         public void CanEnumerateSelectedComputed()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var tables = new List<string> { "[dbo].[DefaultComputedValues]" };
             var options = new DatabaseModelFactoryOptions(tables, new List<string>());
 
@@ -98,7 +99,7 @@ namespace UnitTests
         public void CanEnumerateTypeAlias()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var tables = new List<string> { "[dbo].[TypeAlias]" };
             var options = new DatabaseModelFactoryOptions(tables, new List<string>());
 
@@ -118,7 +119,7 @@ namespace UnitTests
         public void CanHandleDefaultValues()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var tables = new List<string> { "[dbo].[DefaultValues]" };
             var options = new DatabaseModelFactoryOptions(tables, new List<string>());
 
@@ -135,7 +136,7 @@ namespace UnitTests
         public void CanBuildAW2014()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>());
 
             // Act
@@ -149,7 +150,7 @@ namespace UnitTests
         public void Issue208ComputedConstraint()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>());
 
             // Act
@@ -163,7 +164,7 @@ namespace UnitTests
         public void Issue210ComputedConstraintIsFK()
         {
             // Arrange
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>());
 
             // Act
@@ -176,7 +177,7 @@ namespace UnitTests
         [Test]
         public void Issue1262_ConsiderSchemaArgument()
         {
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>() { "mat" });
 
             // Act
@@ -190,7 +191,7 @@ namespace UnitTests
         [Test]
         public void Issue1262_BehaviourWithoutSchemaArgument()
         {
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>());
 
             // Act
@@ -203,10 +204,10 @@ namespace UnitTests
         }
 
         [Test]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "Test")]
         public void Temporal_Support()
         {
-            var factory = new SqlServerDacpacDatabaseModelFactory(null);
+            var factory = new SqlServerDacpacDatabaseModelFactory();
             var options = new DatabaseModelFactoryOptions(null, new List<string>());
 
             // Act
@@ -215,6 +216,23 @@ namespace UnitTests
             // Assert
             Assert.AreEqual(1, dbModel.Tables.Count());
             Assert.NotNull(dbModel.Tables.Single().FindAnnotation(SqlServerAnnotationNames.IsTemporal));
+        }
+
+        [Test]
+        public void Issue_2322_Tvp_Sproc_Parameters()
+        {
+            var factory = new SqlServerDacpacStoredProcedureModelFactory(
+                new SqlServerDacpacDatabaseModelFactoryOptions{ MergeDacpacs = false });
+            var options = new ModuleModelFactoryOptions { FullModel = true, Modules = new List<string>() };
+
+            // Act
+            var dbModel = factory.Create(TestPath("TvpParams.dacpac"), options);
+
+            // Assert
+            Assert.AreEqual(1, dbModel.Routines.Count);
+            Assert.AreEqual(2, dbModel.Routines[0].Parameters.Count);
+            Assert.AreEqual("[Constant].[NumberIDList]", dbModel.Routines[0].Parameters[0].TypeName);
+            Assert.AreEqual("structured", dbModel.Routines[0].Parameters[0].StoreType);
         }
 
         private string TestPath(string file)
