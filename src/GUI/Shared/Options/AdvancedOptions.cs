@@ -25,12 +25,6 @@ namespace EFCorePowerTools
         public bool RunCleanup { get; set; } = true;
 
         [Category("Reverse Engineering")]
-        [DisplayName(@"Save connection name")]
-        [Description("Save connection name in efpt.config.json")]
-        [DefaultValue(true)]
-        public bool IncludeUiHintInConfig { get; set; } = true;
-
-        [Category("Reverse Engineering")]
         [DisplayName(@"Merge .dacpac files")]
         [Description("Merge dependent .dacpac files")]
         [DefaultValue(false)]
@@ -41,12 +35,6 @@ namespace EFCorePowerTools
         [Description("Use sp_describe_first_result_set to retrieve stored procedure result sets")]
         [DefaultValue(false)]
         public bool UseLegacyResultSetDiscovery { get; set; }
-
-        [Category("Reverse Engineering")]
-        [DisplayName(@"Prefer async calls")]
-        [Description("Prefer async/await over synchronous calls")]
-        [DefaultValue(true)]
-        public bool PreferAsyncCalls { get; set; } = true;
 
         [Category("Other")]
         [DisplayName(@"Participate in Telemetry")]

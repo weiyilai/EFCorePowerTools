@@ -1,5 +1,5 @@
 {
-    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$schema": "http://json-schema.org/draft-04/schema#",
     "$id": "http://example.com/example.json",
     "type": "object",
     "default": {},
@@ -59,6 +59,25 @@
                             [
                                 "Name",
                                 "Email"
+                            ]
+                        ]
+                    },
+                    "excludedIndexes": {
+                        "type": "array",
+                        "default": [],
+                        "title": "Indexes to Exclude from code generation",
+                        "items": {
+                            "type": "string",
+                            "title": "Index",
+                            "examples": [
+                                "UX_Parent_ChildId_TopLevel",
+                                "IX_WidgetId"
+                            ]
+                        },
+                        "examples": [
+                            [
+                                "UX_Parent_ChildId_TopLevel",
+                                "IX_WidgetId"
                             ]
                         ]
                     }
@@ -358,6 +377,14 @@
                         false
                     ]
                 },
+                "use-t4-split": {
+                    "type": "boolean",
+                    "default": false,
+                    "title": "Customize code using T4 templates including EntityTypeConfiguration.t4.  This cannot be used in combination with use-t4 or split-dbcontext-preview",
+                    "examples": [
+                        false
+                    ]
+                },
                 "t4-template-path": {
                     "type": [ "string", "null" ] ,
                     "default": null,
@@ -426,6 +453,22 @@
                     "examples": [
                         false
                     ]
+                },
+                "use-prefix-navigation-naming": {
+                    "type": "boolean",
+                    "default": true,
+                    "title": "Use prefix based naming of navigations with EF Core 8 or later",
+                    "examples": [
+                        false
+                    ]
+                },
+                "use-internal-access-modifiers-for-sprocs-and-functions": {
+                  "type": "boolean",
+                  "title": "When generating the stored procedure or function classes and helpers, set them to internal instead of public.",
+                  "default": false,
+                  "examples": [
+                      true
+                  ]
                 }
             },
             "examples": [{

@@ -1,12 +1,14 @@
 # EF Core Power Tools
 
-Reverse engineering, model visualization and migrations UI for EF Core in Visual Studio 2022 (amd64)  - and reverse engineering from command line.
+Reverse engineering and model visualization tools for EF Core in Visual Studio 2022 - and reverse engineering from command line.
 
-Aims to lower the bar for getting started with EF Core, by providing GUI based assistance with reverse engineering of an existing database, creating migrations and visualizing your DbContext model.
+Aims to lower the bar for getting started with EF Core, by providing GUI based assistance with reverse engineering of an existing database and visualizing your DbContext model.
 
 [![Visual Studio Marketplace Rating](https://img.shields.io/visual-studio-marketplace/r/ErikEJ.EFCorePowerTools)](https://marketplace.visualstudio.com/items?itemName=ErikEJ.EFCorePowerTools&ssr=false#review-details)
 [![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/i/ErikEJ.EFCorePowerTools)](https://marketplace.visualstudio.com/items?itemName=ErikEJ.EFCorePowerTools&ssr=false#review-details)
 [![Twitter Follow](https://img.shields.io/twitter/follow/ErikEJ.svg?style=social&label=Follow)](https://twitter.com/ErikEJ) 
+
+[Reverse Engineering Wizard (beta)](https://github.com/ErikEJ/EFCorePowerTools/issues/2626#issue-2664318817) <img src="img/new.png" width="75"/>
 
 [Quick Start and 10 minute intro video](https://github.com/ErikEJ/EFCorePowerTools/wiki/Reverse-Engineering-Quick-Start)
 
@@ -50,21 +52,21 @@ Ensure you always have the latest daily build (if you are brave) by installing [
 
 ## EF Core Power Tools CLI - efcpt
 
-If you do not use Visual Studio, but for example Visual Studio Code, a cross platform dotnet tool for reverse engineering is available, more information [here](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/Core/efcpt.7/readme.md)
+If you do not use Visual Studio, but for example Visual Studio Code, a cross platform dotnet tool for reverse engineering is available, more information [here](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/Core/efcpt.8/readme.md)
 
 ## Related NuGet packages
 
-[ErikEJ.EntityFrameworkCore.DgmlBuilder](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/GUI/ErikEJ.EntityFrameworkCore.DgmlBuilder/readme.md)
+[ErikEJ.EntityFrameworkCore.DgmlBuilder](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/Nupkg/ErikEJ.EntityFrameworkCore.DgmlBuilder/readme.md)
 
 Adds the AsDgml() extension method to any derived DbContext. The method will create a DGML graph of your DbContext Model, that you can then view in the Visual Studio DGML viewer
 
-[ErikEJ.EntityFrameworkCore.SqlServer.Dacpac](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/GUI/ErikEJ.EntityFrameworkCore.SqlServer.Dacpac/readme.md)
+[ErikEJ.EntityFrameworkCore.SqlServer.Dacpac](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/Nupkg/ErikEJ.EntityFrameworkCore.SqlServer.Dacpac/readme.md)
 
 Reverse engineer a SQL Server .dacpac with the EF Core tooling
 
-[ErikEJ.EntityFrameworkCore.SqlServer.SqlQuery](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/GUI/ErikEJ.EntityFrameworkCore.SqlServer.SqlQuery/readme.md)
+[ErikEJ.EntityFrameworkCore.SqlServer.SqlQuery](https://github.com/ErikEJ/EFCorePowerTools/blob/master/src/Nupkg/ErikEJ.EntityFrameworkCore.6.SqlServer.SqlQuery/readme.md)
 
-Materialize abritary classes and scalar values from EF Core using raw SQL
+Materialize arbitrary classes and scalar values from EF Core using raw SQL
 
 # How do I contribute
 

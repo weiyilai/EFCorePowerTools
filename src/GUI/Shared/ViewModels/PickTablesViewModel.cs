@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using EFCorePowerTools.Contracts.EventArgs;
 using EFCorePowerTools.Contracts.ViewModels;
@@ -126,9 +126,12 @@ namespace EFCorePowerTools.ViewModels
         /// At least a single table, function or stored procedure must be selected.
         /// </summary>
         private bool Ok_CanExecute()
-            => ObjectTree.GetSelectedObjects().Any(c => c.ObjectType.HasColumns())
-              || ObjectTree.GetSelectedObjects().Any(c => c.ObjectType == ObjectType.Procedure)
-              || ObjectTree.GetSelectedObjects().Any(c => c.ObjectType == ObjectType.ScalarFunction);
+        {
+            var selectedObjects = ObjectTree.GetSelectedObjects().ToList();
+            return selectedObjects.Exists(c => c.ObjectType.HasColumns())
+                   || selectedObjects.Exists(c => c.ObjectType == ObjectType.Procedure)
+                   || selectedObjects.Exists(c => c.ObjectType == ObjectType.ScalarFunction);
+        }
 
         private void Cancel_Executed()
         {
@@ -148,13 +151,18 @@ namespace EFCorePowerTools.ViewModels
 
         private void HandleSearchTextChange(string text, SearchMode searchMode)
         {
-            Thread.Sleep(300);
-            if (text != SearchText)
-            {
-                return;
-            }
+            _ = Task.Delay(TimeSpan.FromMilliseconds(300))
+                .ContinueWith(
+                _ =>
+                {
+                    if (text != SearchText)
+                    {
+                        return;
+                    }
 
-            ObjectTree.Search(SearchText, searchMode);
+                    ObjectTree.Search(SearchText, searchMode);
+                },
+                TaskScheduler.Default);
         }
 
         private void UpdateTableSelectionThreeState()

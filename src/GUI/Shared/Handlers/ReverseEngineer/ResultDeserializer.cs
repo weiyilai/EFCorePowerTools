@@ -7,9 +7,9 @@ using RevEng.Common;
 
 namespace EFCorePowerTools.Handlers.ReverseEngineer
 {
-    public class ResultDeserializer
+    public static class ResultDeserializer
     {
-        public ReverseEngineerResult BuildResult(string output)
+        public static ReverseEngineerResult BuildResult(string output)
         {
             var resultParts = output.Split(new[] { "Result:" + Environment.NewLine }, StringSplitOptions.None);
             if (resultParts.Length == 2 && TryRead(resultParts[1], out ReverseEngineerResult deserialized))
@@ -26,7 +26,7 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             throw new InvalidOperationException($"Reverse engineer error: Unable to launch external process: {Environment.NewLine + output}");
         }
 
-        public List<TableModel> BuildTableResult(string output)
+        public static List<TableModel> BuildTableResult(string output)
         {
             var resultParts = output.Split(new[] { "Result:" + Environment.NewLine }, StringSplitOptions.None);
             if (resultParts.Length == 2 && TryRead(resultParts[1], out List<TableModel> deserialized))
@@ -43,7 +43,7 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             throw new InvalidOperationException($"Table list error: Unable to launch external process: {Environment.NewLine + output}");
         }
 
-        public string BuildDgmlResult(string output)
+        public static string BuildDiagramResult(string output)
         {
             var resultParts = output.Split(new[] { "Result:" + Environment.NewLine }, StringSplitOptions.None);
             if (resultParts.Length == 2)
@@ -54,10 +54,10 @@ namespace EFCorePowerTools.Handlers.ReverseEngineer
             var errorParts = output.Split(new[] { "Error:" + Environment.NewLine }, StringSplitOptions.None);
             if (errorParts.Length == 2)
             {
-                throw new InvalidOperationException("Dgml error: " + Environment.NewLine + errorParts[1]);
+                throw new InvalidOperationException("Result error: " + Environment.NewLine + errorParts[1]);
             }
 
-            throw new InvalidOperationException($"Dgml error: Unable to launch external process: {Environment.NewLine + output}");
+            throw new InvalidOperationException($"Launch error: Unable to launch external process: {Environment.NewLine + output}");
         }
 
         private static bool TryRead<T>(string options, out T deserialized)
