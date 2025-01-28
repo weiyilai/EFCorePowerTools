@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using NUnit.Framework;
+//using NUnit.Framework.Legacy;
 using RevEng.Common;
 using RevEng.Common.Cli;
 using RevEng.Common.Cli.Configuration;
@@ -34,7 +35,7 @@ namespace UnitTests
             var result = CliConfigMapper.BuildObjectList(config);
 
             Assert.NotNull(result);
-
+            
             Assert.AreEqual(6, result.Count);
         }
 
@@ -89,6 +90,22 @@ namespace UnitTests
             config.Tables.First().Exclude = false;
 
             config.Tables.Add(new Table { ExclusionWildcard = "[dbo]*" });
+
+            var result = CliConfigMapper.BuildObjectList(config);
+
+            Assert.NotNull(result);
+
+            Assert.AreEqual(3, result.Count);
+        }
+
+        [Test]
+        public void MultipleExclusionWildcardExcludes()
+        {
+            var config = GetConfig();
+
+            config.Tables.Add(new Table { ExclusionWildcard = "*Users*" });
+            config.Tables.Add(new Table { ExclusionWildcard = "*Accounts*" });
+            config.Views.Add(new View { ExclusionWildcard = "*Users*" });
 
             var result = CliConfigMapper.BuildObjectList(config);
 
@@ -169,7 +186,7 @@ namespace UnitTests
 
                 var fetchedConfigSuccess = CliConfigMapper.TryGetCliConfig(testPath, "fakeConnectionString",
                     DatabaseType.SQLServer,
-                    GetDefaultTables(DatabaseType.SQLServer), CodeGenerationMode.EFCore7,
+                    GetDefaultTables(DatabaseType.SQLServer), CodeGenerationMode.EFCore8,
                     out CliConfig resultConfig,
                     out List<string> warnings);
 
@@ -227,7 +244,7 @@ namespace UnitTests
 
                 var fetchedConfigSuccess = CliConfigMapper.TryGetCliConfig(testPath, "fakeConnectionString",
                     DatabaseType.SQLServer,
-                    GetDefaultTables(DatabaseType.SQLServer), CodeGenerationMode.EFCore7,
+                    GetDefaultTables(DatabaseType.SQLServer), CodeGenerationMode.EFCore8,
                     out CliConfig resultConfig,
                     out List<string> warnings);
 
@@ -245,10 +262,10 @@ namespace UnitTests
                 }
 
                 Assert.True(warnings.Count == 4);
-                Assert.True(resultConfig.Tables[0].ExcludedColumns.Count == 1);
-                Assert.True(resultConfig.Tables[0].ExcludedColumns[0] == "Name");
-                Assert.True(resultConfig.Views[0].ExcludedColumns.Count == 1);
-                Assert.True(resultConfig.Views[0].ExcludedColumns[0] == "Name");
+                Assert.True(resultConfig.Tables[0].ExcludedColumns.Count == 3);
+                Assert.True(resultConfig.Tables[0].ExcludedColumns[0] == "UserId");
+                Assert.True(resultConfig.Views[0].ExcludedColumns.Count == 3);
+                Assert.True(resultConfig.Views[0].ExcludedColumns[0] == "UserId");
                 Assert.IsNull(resultConfig.Functions[0].ExcludedColumns);
                 Assert.IsNull(resultConfig.StoredProcedures[0].ExcludedColumns);
             }
