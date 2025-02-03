@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +12,14 @@ namespace RevEng.Common.Cli
 {
     public static class CliConfigMapper
     {
-        public static ReverseEngineerCommandOptions ToOptions(this CliConfig config, string connectionString, DatabaseType databaseType, string projectPath, bool isDacpac, string configPath)
+        public static ReverseEngineerCommandOptions ToCommandOptions(
+            this CliConfig config,
+            string connectionString,
+            DatabaseType databaseType,
+            string projectPath,
+            bool isDacpac,
+            string configPath,
+            string renamingPath)
         {
             if (config is null)
             {
@@ -31,6 +39,11 @@ namespace RevEng.Common.Cli
             if (string.IsNullOrEmpty(configPath))
             {
                 throw new ArgumentNullException(nameof(configPath));
+            }
+
+            if (string.IsNullOrEmpty(renamingPath))
+            {
+                throw new ArgumentNullException(nameof(renamingPath));
             }
 
             var selectedToBeGenerated = config.CodeGeneration.Type.ToUpperInvariant() switch
@@ -60,10 +73,11 @@ namespace RevEng.Common.Cli
                 UseInflector = config.CodeGeneration.UseInflector,
                 UseT4 = config.CodeGeneration.UseT4,
                 T4TemplatePath = config.CodeGeneration.T4TemplatePath != null ? PathHelper.GetAbsPath(config.CodeGeneration.T4TemplatePath, projectPath) : null,
+                UseT4Split = config.CodeGeneration.UseT4Split,
                 IncludeConnectionString = !isDacpac && config.CodeGeneration.EnableOnConfiguring,
                 SelectedToBeGenerated = selectedToBeGenerated,
                 Dacpac = isDacpac ? connectionString : null,
-                CustomReplacers = GetNamingOptions(configPath),
+                CustomReplacers = GetNamingOptions(configPath, renamingPath),
                 UseLegacyPluralizer = config.CodeGeneration.UseLegacyInflector,
                 UncountableWords = replacements.UncountableWords?.ToList(),
                 UseSpatial = typeMappings.UseSpatial,
@@ -81,11 +95,14 @@ namespace RevEng.Common.Cli
                 ProjectRootNamespace = names.RootNamespace,
                 MergeDacpacs = config.CodeGeneration.MergeDacpacs,
                 UseDecimalDataAnnotation = config.CodeGeneration.UseDecimalDataAnnotation,
+                UsePrefixNavigationNaming = config.CodeGeneration.UsePrefixNavigationNaming,
+                UseDatabaseNamesForRoutines = config.CodeGeneration.UseDatabaseNamesForRoutines,
+                UseInternalAccessModifiersForSprocsAndFunctions = config.CodeGeneration.UseInternalAccessModifiersForSprocsAndFunctions,
 
                 // Not supported:
                 UseHandleBars = false,
                 SelectedHandlebarsLanguage = 0, // handlebars support, will not support it
-                OptionsPath = null, // handlebars support, will not support it
+                OptionsPath = null, // handlebars support, will not support it (looks like it is not used!)
 
                 // Not implemented:
                 UseNoDefaultConstructor = false, // not implemented, will consider if asked for
@@ -110,9 +127,107 @@ namespace RevEng.Common.Cli
             return options;
         }
 
+        public static ReverseEngineerOptions ToOptions(this CliConfig config, string projectPath, string configPath)
+        {
+            if (config is null)
+            {
+                throw new ArgumentNullException(nameof(config));
+            }
+
+            if (string.IsNullOrEmpty(projectPath))
+            {
+                throw new ArgumentNullException(nameof(projectPath));
+            }
+
+            if (string.IsNullOrEmpty(configPath))
+            {
+                throw new ArgumentNullException(nameof(configPath));
+            }
+
+            var selectedToBeGenerated = config.CodeGeneration.Type.ToUpperInvariant() switch
+            {
+                "DBCONTEXT" => 1,
+                "ENTITIES" => 2,
+                _ => 0, // "all"
+            };
+
+            var replacements = config.Replacements ?? new Replacements();
+            var typeMappings = config.TypeMappings ?? new TypeMappings();
+            var names = config.Names ?? new Names();
+
+            var options = new ReverseEngineerOptions
+            {
+                ProjectPath = projectPath,
+                ModelNamespace = names.ModelNamespace,
+                ContextNamespace = names.DbContextNamespace,
+                UseFluentApiOnly = !config.CodeGeneration.UseDataAnnotations,
+                ContextClassName = names.DbContextName,
+                Tables = BuildObjectList(config),
+                UseDatabaseNames = config.CodeGeneration.UseDatabaseNames,
+                UseInflector = config.CodeGeneration.UseInflector,
+                UseT4 = config.CodeGeneration.UseT4,
+                UseT4Split = config.CodeGeneration.UseT4Split,
+                T4TemplatePath = config.CodeGeneration.T4TemplatePath != null ? PathHelper.GetAbsPath(config.CodeGeneration.T4TemplatePath, projectPath) : null,
+                IncludeConnectionString = config.CodeGeneration.EnableOnConfiguring,
+                SelectedToBeGenerated = selectedToBeGenerated,
+                Dacpac = null,
+                CustomReplacers = GetNamingOptions(configPath, Constants.RenamingFileName),
+                UseLegacyPluralizer = config.CodeGeneration.UseLegacyInflector,
+                UncountableWords = replacements.UncountableWords?.ToList(),
+                UseSpatial = typeMappings.UseSpatial,
+                UseHierarchyId = typeMappings.UseHierarchyId,
+                UseNodaTime = typeMappings.UseNodaTime,
+                UseBoolPropertiesWithoutDefaultSql = config.CodeGeneration.RemoveDefaultSqlFromBoolProperties,
+                UseNoNavigations = config.CodeGeneration.UseNoNavigationsPreview,
+                UseManyToManyEntity = config.CodeGeneration.UseManyToManyEntity,
+                PreserveCasingWithRegex = replacements.PreserveCasingWithRegex,
+                UseDateOnlyTimeOnly = typeMappings.UseDateOnlyTimeOnly,
+                UseNullableReferences = config.CodeGeneration.UseNullableReferenceTypes,
+                ProjectRootNamespace = names.RootNamespace,
+                UseDecimalDataAnnotationForSprocResult = config.CodeGeneration.UseDecimalDataAnnotation,
+                UsePrefixNavigationNaming = config.CodeGeneration.UsePrefixNavigationNaming,
+                UseDatabaseNamesForRoutines = config.CodeGeneration.UseDatabaseNamesForRoutines,
+                UseInternalAccessModifiersForSprocsAndFunctions = config.CodeGeneration.UseInternalAccessModifiersForSprocsAndFunctions,
+
+                // HandleBars templates are not supported:
+                UseHandleBars = false,
+                SelectedHandlebarsLanguage = 0, // handlebars support, will not support it
+                OptionsPath = null, // handlebars support, will not support it (not in use!) - [IgnoreDataMember]
+
+                // Not implemented:
+                UseNoDefaultConstructor = false, // not implemented, will consider if asked for
+                DefaultDacpacSchema = null, // not implemented, will consider if asked for - [IgnoreDataMember]
+                UseNoObjectFilter = false, // will add all objects and use exclusions to filter list - "refresh-object-lists" allows you to avoid this (switch to manual)
+                UseAsyncStoredProcedureCalls = true, // not implemented
+                FilterSchemas = false, // not implemented
+                Schemas = null, // not implemented,
+
+                CodeGenerationMode = CodeGenerationMode.EFCore8, // not implemented/persisted
+
+                ConnectionString = null, // not persisted, set at runtime - [IgnoreDataMember]
+                DatabaseType = DatabaseType.Undefined, // not persisted, set at runtime - [IgnoreDataMember]
+                InstallNuGetPackage = false, // not persisted, set at runtime - [IgnoreDataMember]
+                UiHint = null, // not persisted, set in .user file
+            };
+
+            if (config.FileLayout is null)
+            {
+                return options;
+            }
+
+            options.OutputPath = config.FileLayout.OutputPath;
+            options.OutputContextPath = config.FileLayout.OutputDbContextPath;
+            options.UseSchemaFolders = config.FileLayout.UseSchemaFoldersPreview;
+            options.UseSchemaNamespaces = config.FileLayout.UseSchemaNamespacesPreview;
+            options.UseDbContextSplitting = config.FileLayout.SplitDbContextPreview;
+
+            return options;
+        }
+
         public static bool TryGetCliConfig(string fullPath, string connectionString, DatabaseType databaseType, List<TableModel> objects, CodeGenerationMode codeGenerationMode, out CliConfig config, out List<string> warnings)
         {
-            if (File.Exists(fullPath))
+            var cliConfigExists = File.Exists(fullPath);
+            if (cliConfigExists)
             {
                 config = JsonSerializer.Deserialize<CliConfig>(File.ReadAllText(fullPath, Encoding.UTF8));
             }
@@ -146,43 +261,15 @@ namespace RevEng.Common.Cli
 
             warnings = ValidateExcludedColumns(config, objects);
 
-#pragma warning disable CA1869 // Cache and reuse 'JsonSerializerOptions' instances
-            var options = new JsonSerializerOptions { WriteIndented = true };
-#pragma warning restore CA1869 // Cache and reuse 'JsonSerializerOptions' instances
-            File.WriteAllText(fullPath, JsonSerializer.Serialize(config, options), Encoding.UTF8);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Ensures that any excluded columns for tables are not required. Removes the invalid columns from the list.
-        /// </summary>
-        /// <param name="config">Configuration to Validate.</param>
-        /// <param name="objects">Table Models to check against.</param>
-        private static List<string> ValidateExcludedColumns(CliConfig config, List<TableModel> objects)
-        {
-            List<string> warnings = new();
-
-            var objectsToCheck = config.Tables.Where(x => x.ExcludedColumns?.Count > 0)
-                .Select(table => table as IEntity)
-                .Union(config.Views.Where(x => x.ExcludedColumns?.Count > 0));
-
-            foreach (var table in objectsToCheck)
+            if (!cliConfigExists || config.CodeGeneration.RefreshObjectLists)
             {
-                var dbTable = objects.Single(x => x.DisplayName == table.Name);
-                var columnsThatCannotBeExcluded = dbTable.Columns.Where(x => x.IsForeignKey || x.IsPrimaryKey).Select(x => x.Name);
-
-                var badExclusions = columnsThatCannotBeExcluded.Intersect(table.ExcludedColumns);
-
-                foreach (var column in badExclusions)
-                {
-                    var originalColumnString = table.ExcludedColumns.Single(x => string.Equals(x, column, StringComparison.Ordinal));
-                    warnings.Add($"{table.Name}.{originalColumnString} cannot be excluded because it is either a Primary Key or Foreign Key of another Mapped Column.  This entry has been removed from the config file.");
-                    table.ExcludedColumns.Remove(originalColumnString);
-                }
+#pragma warning disable CA1869 // Cache and reuse 'JsonSerializerOptions' instances
+                var options = new JsonSerializerOptions { WriteIndented = true };
+#pragma warning restore CA1869 // Cache and reuse 'JsonSerializerOptions' instances
+                File.WriteAllText(fullPath, JsonSerializer.Serialize(config, options), Encoding.UTF8);
             }
 
-            return warnings;
+            return true;
         }
 
         public static List<SerializationTableModel> BuildObjectList(CliConfig config)
@@ -202,6 +289,39 @@ namespace RevEng.Common.Cli
             return objects;
         }
 
+        /// <summary>
+        /// Ensures that any excluded columns for tables are not required. Removes the invalid columns from the list.
+        /// </summary>
+        /// <param name="config">Configuration to Validate.</param>
+        /// <param name="objects">Table Models to check against.</param>
+        private static List<string> ValidateExcludedColumns(CliConfig config, List<TableModel> objects)
+        {
+            List<string> warnings = new();
+
+            var tables = config.Tables ?? new List<Table>();
+            var views = config.Views ?? new List<View>();
+
+            var objectsToCheck = tables.Where(x => x.ExcludedColumns?.Count > 0)
+                .Select(table => table as IEntity)
+                .Union(views.Where(x => x.ExcludedColumns?.Count > 0));
+
+            foreach (var table in objectsToCheck)
+            {
+                var dbTable = objects.Single(x => x.DisplayName == table.Name);
+                var columnsThatCannotBeExcluded = dbTable.Columns.Where(x => x.IsForeignKey || x.IsPrimaryKey).Select(x => x.Name);
+
+                var badExclusions = columnsThatCannotBeExcluded.Intersect(table.ExcludedColumns);
+
+                foreach (var column in badExclusions)
+                {
+                    var originalColumnString = table.ExcludedColumns.Single(x => string.Equals(x, column, StringComparison.Ordinal));
+                    warnings.Add($"{table.Name}.{originalColumnString} is either a Primary Key or Foreign Key of another Table. Removing this column could result in an invalid model.");
+                }
+            }
+
+            return warnings;
+        }
+
         private static void ToSerializationModel<T>(IEnumerable<T> entities, Action<IEnumerable<SerializationTableModel>> addRange)
             where T : IEntity, new()
         {
@@ -218,7 +338,7 @@ namespace RevEng.Common.Cli
 
             var serializationTableModels = entities.Where<T>(entity => ExclusionFilter(entity, excludeAll, filters)
                 && !string.IsNullOrEmpty(entity.Name))
-                .Select(entity => new SerializationTableModel(entity.Name, objectType, entity.ExcludedColumns));
+                .Select(entity => new SerializationTableModel(entity.Name, objectType, entity.ExcludedColumns, entity.ExcludedIndexes));
             addRange(serializationTableModels);
         }
 
@@ -242,7 +362,7 @@ namespace RevEng.Common.Cli
                         Filter = candiate.ExclusionWildcard.Substring(0, candiate.ExclusionWildcard.Length - 1).Substring(1),
                         FilterType = ExclusionFilterType.Contains,
                     });
-                    break;
+                    continue;
                 }
 
                 if (candiate.ExclusionWildcard.StartsWith("*", StringComparison.OrdinalIgnoreCase))
@@ -252,7 +372,7 @@ namespace RevEng.Common.Cli
                         Filter = candiate.ExclusionWildcard.Substring(1),
                         FilterType = ExclusionFilterType.EndsWith,
                     });
-                    break;
+                    continue;
                 }
 
                 if (candiate.ExclusionWildcard.EndsWith("*", StringComparison.OrdinalIgnoreCase))
@@ -262,7 +382,6 @@ namespace RevEng.Common.Cli
                         Filter = candiate.ExclusionWildcard.Substring(0, candiate.ExclusionWildcard.Length - 1),
                         FilterType = ExclusionFilterType.StartsWith,
                     });
-                    break;
                 }
             }
 
@@ -319,7 +438,9 @@ namespace RevEng.Common.Cli
             var newItems = models.Where(o => o.ObjectType == objectType).ToList();
             if (newItems.Count == 0)
             {
-                return new List<T>();
+#pragma warning disable S1168
+                return null;
+#pragma warning restore S1168
             }
 
             var result = entities ?? new List<T>();
@@ -328,13 +449,13 @@ namespace RevEng.Common.Cli
             foreach (var displayName in newItems.Select(t => t.DisplayName))
             {
                 T existing = result.SingleOrDefault(t => t.Name == displayName);
-                if (existing == null)
+                if (Equals(existing, default(T)))
                 {
                     result.Add(new T { Name = displayName });
                 }
             }
 
-            return result;
+            return result.Count > 0 ? result : null;
         }
 
         private static ObjectType DefineObjectType<T>()
@@ -383,9 +504,9 @@ namespace RevEng.Common.Cli
             return DbContextNamer.GetDatabaseName(connectionString, databaseType) + "Context";
         }
 
-        private static List<Schema> GetNamingOptions(string configPath)
+        private static List<Schema> GetNamingOptions(string configPath, string renamingFileName)
         {
-            var path = Path.Combine(Path.GetDirectoryName(configPath), "efpt.renaming.json");
+            var path = Path.Combine(Path.GetDirectoryName(configPath), renamingFileName);
             if (!File.Exists(path))
             {
                 return new List<Schema>();

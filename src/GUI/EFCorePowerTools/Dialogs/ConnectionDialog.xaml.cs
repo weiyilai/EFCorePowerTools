@@ -57,22 +57,13 @@ namespace EFCorePowerTools.Dialogs
 
             switch (dbType)
             {
-                case DatabaseType.Undefined:
-                case DatabaseType.SQLite:
-                case DatabaseType.Npgsql:
-                case DatabaseType.Oracle:
-                case DatabaseType.SQLServerDacpac:
-                    break;
-
                 case DatabaseType.Mysql:
                     txtSample.Text = "Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;";
                     break;
-                case DatabaseType.SQLServer:
-                    txtSample.Text = "Server=myserver.database.windows.net;Authentication=Active Directory Default;Database=mydatabase;User Id=user@domain.com";
+                case DatabaseType.Snowflake:
+                    txtSample.Text = "ACCOUNT=<accountid>;DB=MYDATABASE;SCHEMA=MYSCHEMA;USER=MYUSERNAME;PASSWORD=myPassword";
                     break;
-                case DatabaseType.Firebird:
-                    txtSample.Text = "database=localhost:demo.fdb;user=sysdba;password=masterkey";
-                    break;
+
                 default:
                     break;
             }

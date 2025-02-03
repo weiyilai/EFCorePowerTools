@@ -25,6 +25,41 @@ namespace EFCorePowerTools.Handlers
             this.project = project;
         }
 
+        public static List<Tuple<string, string>> BuildModelResult(string modelInfo)
+        {
+            var result = new List<Tuple<string, string>>();
+
+            var contexts = modelInfo.Split(new[] { "DbContext:" + Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var context in contexts)
+            {
+                if (context.StartsWith("info:", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (context.StartsWith("dbug:", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (context.StartsWith("warn:", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (context.IndexOf("DebugView:", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                var parts = context.Split(new[] { "DebugView:" + Environment.NewLine }, StringSplitOptions.None);
+                result.Add(new Tuple<string, string>(parts[0].Trim(), parts.Length > 1 ? parts[1].Trim() : string.Empty));
+            }
+
+            return result;
+        }
+
         public static async Task<string> RunProcessAsync(ProcessStartInfo startInfo)
         {
             startInfo.UseShellExecute = false;
@@ -63,54 +98,14 @@ namespace EFCorePowerTools.Handlers
             return result;
         }
 
-        public Task<string> GetOutputAsync(string outputPath, string projectPath, GenerationType generationType, string contextName, string migrationIdentifier, string nameSpace)
-        {
-            return GetOutputInternalAsync(outputPath, projectPath, generationType, contextName, migrationIdentifier, nameSpace);
-        }
-
         public Task<string> GetOutputAsync(string outputPath, GenerationType generationType, string contextNames, string connectionString)
         {
-            return GetOutputInternalAsync(outputPath, null, generationType, contextNames, connectionString, null);
+            return GetOutputInternalAsync(outputPath, generationType, contextNames, connectionString);
         }
 
         public Task<string> GetOutputAsync(string outputPath, GenerationType generationType, string contextName)
         {
-            return GetOutputInternalAsync(outputPath, null, generationType, contextName, null, null);
-        }
-
-        public List<Tuple<string, string>> BuildModelResult(string modelInfo)
-        {
-            var result = new List<Tuple<string, string>>();
-
-            var contexts = modelInfo.Split(new[] { "DbContext:" + Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var context in contexts)
-            {
-                if (context.StartsWith("info:", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (context.StartsWith("dbug:", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (context.StartsWith("warn:", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (context.IndexOf("DebugView:", StringComparison.OrdinalIgnoreCase) < 0)
-                {
-                    continue;
-                }
-
-                var parts = context.Split(new[] { "DebugView:" + Environment.NewLine }, StringSplitOptions.None);
-                result.Add(new Tuple<string, string>(parts[0].Trim(), parts.Length > 1 ? parts[1].Trim() : string.Empty));
-            }
-
-            return result;
+            return GetOutputInternalAsync(outputPath, generationType, contextName, null);
         }
 
         private static string FixExtension(string startupOutputPath)
@@ -130,7 +125,7 @@ namespace EFCorePowerTools.Handlers
             Telemetry.TrackFrameworkUse(nameof(ProcessLauncher), codeGenerationMode);
         }
 
-        private async Task<string> GetOutputInternalAsync(string outputPath, string projectPath, GenerationType generationType, string contextName, string migrationIdentifier, string nameSpace)
+        private async Task<string> GetOutputInternalAsync(string outputPath, GenerationType generationType, string contextName, string connectionString)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -161,23 +156,11 @@ namespace EFCorePowerTools.Handlers
                     break;
                 case GenerationType.DebugView:
                     break;
-                case GenerationType.MigrationStatus:
-                    startInfo.Arguments = "migrationstatus" + outputs;
-                    break;
-                case GenerationType.MigrationApply:
-                    startInfo.Arguments = "migrate" + outputs + contextName;
-                    break;
-                case GenerationType.MigrationAdd:
-                    startInfo.Arguments = "addmigration" + outputs + "\"" + projectPath + "\" " + contextName + " " + migrationIdentifier + " " + nameSpace;
-                    break;
-                case GenerationType.MigrationScript:
-                    startInfo.Arguments = "scriptmigration" + outputs + contextName;
-                    break;
                 case GenerationType.DbContextList:
                     startInfo.Arguments = "contextlist" + outputs;
                     break;
                 case GenerationType.DbContextCompare:
-                    startInfo.Arguments = "schemacompare" + outputs + "\"" + migrationIdentifier + "\" " + contextName;
+                    startInfo.Arguments = "schemacompare" + outputs + "\"" + connectionString + "\" " + contextName;
                     break;
                 default:
                     break;
@@ -227,7 +210,7 @@ namespace EFCorePowerTools.Handlers
 
             try
             {
-                File.WriteAllText(Path.Combine(Path.GetTempPath(), "efptparams.txt"), startInfo.Arguments);
+                File.WriteAllText(Path.Combine(Path.GetTempPath(), "efptparams.txt"), startInfo.Arguments, Encoding.UTF8);
             }
             catch
             {
@@ -254,8 +237,6 @@ namespace EFCorePowerTools.Handlers
 
             var versionInfo = await project.ContainsEfCoreDesignReferenceAsync();
 
-            var isNet7 = await project.IsNet70OnlyAsync();
-
             if (versionInfo.Item2.StartsWith("6.", StringComparison.OrdinalIgnoreCase))
             {
                 ExtractTool(toDir, fromDir, "efpt60.exe.zip", RevEng.Common.CodeGenerationMode.EFCore6);
@@ -264,13 +245,9 @@ namespace EFCorePowerTools.Handlers
             {
                 ExtractTool(toDir, fromDir, "efpt80.exe.zip", RevEng.Common.CodeGenerationMode.EFCore8);
             }
-            else if (!isNet7 && versionInfo.Item2.StartsWith("7.", StringComparison.OrdinalIgnoreCase))
+            else if (versionInfo.Item2.StartsWith("9.", StringComparison.OrdinalIgnoreCase))
             {
-                ExtractTool(toDir, fromDir, "efpt70.exe.zip", RevEng.Common.CodeGenerationMode.EFCore7);
-            }
-            else if (isNet7 && versionInfo.Item2.StartsWith("7.", StringComparison.OrdinalIgnoreCase))
-            {
-                ExtractTool(toDir, fromDir, "efpt70sc.exe.zip", RevEng.Common.CodeGenerationMode.EFCore7);
+                ExtractTool(toDir, fromDir, "efpt90.exe.zip", RevEng.Common.CodeGenerationMode.EFCore9);
             }
 
             return toDir;

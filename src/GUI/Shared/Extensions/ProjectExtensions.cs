@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using Community.VisualStudio.Toolkit;
 using EFCorePowerTools.Handlers.ReverseEngineer;
@@ -43,6 +44,20 @@ namespace EFCorePowerTools.Extensions
             {
                 return null;
             }
+        }
+
+        public static async Task<string> GetDacpacPathAsync(this Project project)
+        {
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+
+            var assemblyName = await project.GetAttributeAsync("SqlTargetPath");
+
+            if (string.IsNullOrEmpty(assemblyName))
+            {
+                assemblyName = await project.GetAttributeAsync("TargetPath");
+            }
+
+            return assemblyName;
         }
 
         public static async Task<string> GetOutPutAssemblyPathAsync(this Project project)
@@ -101,6 +116,27 @@ namespace EFCorePowerTools.Extensions
             return result.OrderBy(s => s).ToList();
         }
 
+        public static string GetCliConfigFile(this Project project)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var projectPath = Path.GetDirectoryName(project.FullPath);
+
+            if (string.IsNullOrEmpty(projectPath))
+            {
+                return null;
+            }
+
+            var path = Path.Combine(projectPath,  RevEng.Common.Constants.ConfigFileName);
+
+            if (File.Exists(path))
+            {
+                return path;
+            }
+
+            return null;
+        }
+
         public static string GetRenamingPath(this Project project, string optionsPath, bool navigationsFile = false)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
@@ -121,7 +157,7 @@ namespace EFCorePowerTools.Extensions
                 renamingPath = Path.GetDirectoryName(optionsPath);
             }
 
-            const string efptRenamingJson = "efpt.renaming.json";
+            const string efptRenamingJson = RevEng.Common.Constants.RenamingFileName;
             const string efptRenamingNavJson = "efpt.property-renaming.json";
             return Path.Combine(renamingPath, navigationsFile ? efptRenamingNavJson : efptRenamingJson);
         }
@@ -172,7 +208,18 @@ namespace EFCorePowerTools.Extensions
                 version = new Version(8, 0);
             }
 
+            if (await project.IsNet90Async())
+            {
+                version = new Version(9, 0);
+            }
+
             return version;
+        }
+
+        public static async Task<bool> CanUseReverseEngineerAsync(this Project project)
+        {
+            return project.IsCSharpProject()
+                && (await project.IsNet60OrHigherAsync() || await project.IsNetStandardAsync());
         }
 
         public static bool IsCSharpProject(this Project project)
@@ -200,35 +247,37 @@ namespace EFCorePowerTools.Extensions
             return project.IsCapabilityMatch("CSharp & CPS");
         }
 
-        public static bool IsMsBuildSqlProjProject(this Project project)
+        public static async Task<bool> IsSqlDatabaseProjectAsync(this Project project)
         {
             if (project == null)
             {
                 return false;
             }
 
-            return project.IsCapabilityMatch("CSharp & CPS & MSBuild.Sdk.SqlProj.BuildTSqlScript");
+            return project.FullPath.EndsWith(".sqlproj", StringComparison.OrdinalIgnoreCase)
+                || await project.IsMsBuildSqlProjOrMsBuildSqlProjectAsync();
+        }
+
+        public static async Task<bool> IsMsBuildSqlProjOrMsBuildSqlProjectAsync(this Project project)
+        {
+            if (project == null)
+            {
+                return false;
+            }
+
+            // Supports older and current MsBuild.Sdk.SqlProj projects and new Microsoft.Build.Sql projects
+            return project.IsCapabilityMatch("CSharp & CPS & (MSBuild.Sdk.SqlProj.BuildTSqlScript | SQLProject)")
+                || (project.IsCSharpProjectPlain() && !string.IsNullOrEmpty(await project.GetAttributeAsync("SqlServerVersion")));
         }
 
         public static async Task<bool> IsNet60OrHigherAsync(this Project project)
         {
             var targetFrameworkMonikers = await GetTargetFrameworkMonikersAsync(project);
 
-            return IsNet60(targetFrameworkMonikers) || IsNet70(targetFrameworkMonikers) || IsNet80(targetFrameworkMonikers);
-        }
-
-        public static async Task<bool> IsNet70OnlyAsync(this Project project)
-        {
-            var targetFrameworkMonikers = await GetTargetFrameworkMonikersAsync(project);
-
-            return IsNet70(targetFrameworkMonikers);
-        }
-
-        public static async Task<bool> IsNet80Async(this Project project)
-        {
-            var targetFrameworkMonikers = await GetTargetFrameworkMonikersAsync(project);
-
-            return IsNet80(targetFrameworkMonikers);
+            return IsNet60(targetFrameworkMonikers)
+                || IsNet70(targetFrameworkMonikers)
+                || IsNet80(targetFrameworkMonikers)
+                || IsNet90(targetFrameworkMonikers);
         }
 
         public static async Task<bool> IsNetStandardAsync(this Project project)
@@ -266,7 +315,7 @@ namespace EFCorePowerTools.Extensions
             return false;
         }
 
-        public static List<string> GenerateFiles(this Project project, List<Tuple<string, string>> result, string extension)
+        public static List<string> GenerateFiles(this Project project, List<Tuple<string, string>> result, string extension, bool addToProject = false)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -281,19 +330,28 @@ namespace EFCorePowerTools.Extensions
                     return list;
                 }
 
-                var filePath = Path.Combine(
-                    Path.GetTempPath(),
-                    item.Item1 + extension);
-
-                if (File.Exists(filePath))
+                if (addToProject)
                 {
-                    File.SetAttributes(filePath, FileAttributes.Normal);
+                    var itemPath = Path.Combine(Path.GetDirectoryName(project.FullPath), item.Item1 + extension);
+                    File.WriteAllText(itemPath, item.Item2, Encoding.UTF8);
+                    list.Add(itemPath);
                 }
+                else
+                {
+                    var filePath = Path.Combine(
+                        Path.GetTempPath(),
+                        item.Item1 + extension);
 
-                File.WriteAllText(filePath, item.Item2);
-                File.SetAttributes(filePath, FileAttributes.ReadOnly);
+                    if (File.Exists(filePath))
+                    {
+                        File.SetAttributes(filePath, FileAttributes.Normal);
+                    }
 
-                list.Add(filePath);
+                    File.WriteAllText(filePath, item.Item2, Encoding.UTF8);
+                    File.SetAttributes(filePath, FileAttributes.ReadOnly);
+
+                    list.Add(filePath);
+                }
             }
 
             return list;
@@ -303,7 +361,7 @@ namespace EFCorePowerTools.Extensions
         {
             string result = null;
 
-            project.GetItemInfo(out IVsHierarchy hierarchy, out uint itemId, out _);
+            project.GetItemInfo(out IVsHierarchy hierarchy, out uint _, out _);
 
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
@@ -399,6 +457,20 @@ namespace EFCorePowerTools.Extensions
             return new Tuple<bool, string>(hasDesign, coreVersion);
         }
 
+        private static async Task<bool> IsNet80Async(this Project project)
+        {
+            var targetFrameworkMonikers = await GetTargetFrameworkMonikersAsync(project);
+
+            return IsNet80(targetFrameworkMonikers);
+        }
+
+        private static async Task<bool> IsNet90Async(this Project project)
+        {
+            var targetFrameworkMonikers = await GetTargetFrameworkMonikersAsync(project);
+
+            return IsNet90(targetFrameworkMonikers);
+        }
+
         private static bool IsNet60(string targetFrameworkMonikers)
         {
             return FrameworkCheck(targetFrameworkMonikers, "6");
@@ -412,6 +484,11 @@ namespace EFCorePowerTools.Extensions
         private static bool IsNet80(string targetFrameworkMonikers)
         {
             return FrameworkCheck(targetFrameworkMonikers, "8");
+        }
+
+        private static bool IsNet90(string targetFrameworkMonikers)
+        {
+            return FrameworkCheck(targetFrameworkMonikers, "9");
         }
 
         private static bool FrameworkCheck(string targetFrameworkMonikers, string version)

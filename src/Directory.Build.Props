@@ -1,14 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
 
+  <PropertyGroup Label="Compile settings">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>1573,1591,1712,CA1014</NoWarn>
+    <LangVersion>latest</LangVersion>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+  
   <PropertyGroup Label="Analyzer settings">
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisLevel>latest-All</AnalysisLevel>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <AnalysisLevelStyle>latest-all</AnalysisLevelStyle>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-  </PropertyGroup>  
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.16.0.82469">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.5.0.109200">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>

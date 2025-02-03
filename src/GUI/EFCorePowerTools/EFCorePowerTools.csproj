@@ -3,8 +3,6 @@
   <PropertyGroup>
     <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
     <UseCodebase>true</UseCodebase>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -19,9 +17,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>bin\Release\EFCorePowerTools.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>bin\Debug\EFCorePowerTools.xml</DocumentationFile>
   </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -45,6 +45,7 @@
     <StartAction>Program</StartAction>
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
+    <CheckNewtonsoftJsonVersion>false</CheckNewtonsoftJsonVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\Nupkg\ErikEJ.EntityFrameworkCore.DgmlBuilder\DebugViewParser.cs">
@@ -55,6 +56,27 @@
     </Compile>
     <Compile Include="..\..\Nupkg\ErikEJ.EntityFrameworkCore.DgmlBuilder\DgmlBuilder.cs">
       <Link>DgmlBuilder\DgmlBuilder.cs</Link>
+    </Compile>
+    <Compile Include="Westwind.WPF.Statusbar\StatusBarControl.xaml.cs">
+      <DependentUpon>StatusBarControl.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Westwind.WPF.Statusbar\StatusBarHelper.cs" />
+    <Compile Include="Westwind.WPF.Statusbar\StatusIcons.cs" />
+    <Compile Include="Westwind.WPF.Statusbar\Utilities\DebounceDispatcher.cs" />
+    <Compile Include="Wizard\Wiz4_StatusDialog.xaml.cs">
+      <DependentUpon>Wiz4_StatusDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\Wiz1_PickServerDatabaseDialog.cs">
+      <DependentUpon>Wiz1_PickServerDatabaseDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\Wiz2_PickTablesDialog.cs">
+      <DependentUpon>Wiz2_PickTablesDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\Wiz3_EfCoreModelDialog.cs">
+      <DependentUpon>Wiz3_EfCoreModelDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Wizard\WizardDialogBox.cs">
+      <DependentUpon>WizardDialogBox.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialogs\AdvancedModelingOptionsDialog.xaml.cs">
       <DependentUpon>AdvancedModelingOptionsDialog.xaml</DependentUpon>
@@ -67,9 +89,6 @@
     </Compile>
     <Compile Include="Dialogs\CompareResultDialog.xaml.cs">
       <DependentUpon>CompareResultDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Dialogs\EfCoreMigrationsDialog.xaml.cs">
-      <DependentUpon>EfCoreMigrationsDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialogs\EfCoreModelDialog.xaml.cs">
       <DependentUpon>EfCoreModelDialog.xaml</DependentUpon>
@@ -93,10 +112,16 @@
       <DependentUpon>PickTablesDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="EFCorePowerToolsPackage.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Locales\AboutLocale.Designer.cs">
       <DependentUpon>AboutLocale.resx</DependentUpon>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Locales\ButtonLocale.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ButtonLocale.resx</DependentUpon>
     </Compile>
     <Compile Include="Locales\ModelAnalyzerLocale.Designer.cs">
       <DependentUpon>ModelAnalyzerLocale.resx</DependentUpon>
@@ -105,11 +130,6 @@
     </Compile>
     <Compile Include="Locales\DgmlLocale.Designer.cs">
       <DependentUpon>DgmlLocale.resx</DependentUpon>
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-    </Compile>
-    <Compile Include="Locales\MigrationsLocale.Designer.cs">
-      <DependentUpon>MigrationsLocale.resx</DependentUpon>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
@@ -139,8 +159,23 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="Wizard\WizardLauncher.cs" />
+    <Compile Include="Wizard\WizardResult.cs" />
+    <Compile Include="Wizard\WizardResultPageFunction.cs" />
+    <Compile Include="Wizard\WizardReturnEventArgs.cs" />
+    <Compile Include="Wizard\WizardReturnEventHandler.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\circle-check.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\circle-exclamation.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\circle-green.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\circle-notch.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\circle-red.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Assets\Icons\triangle-exclamation.svg" />
+    <Content Include="Westwind.WPF.Statusbar\Icon-512.png" />
+    <Content Include="Westwind.WPF.Statusbar\icon.png" />
+    <None Include="Westwind.WPF.Statusbar\LICENSE.md" />
+    <None Include="Westwind.WPF.Statusbar\README.md" />
     <Resource Include="Resources\TableWarning.png" />
     <Resource Include="Resources\View.png" />
     <Resource Include="Resources\Table.png" />
@@ -149,7 +184,6 @@
     <Resource Include="Resources\ScrollbarArrowDownRight.png" />
     <Resource Include="Resources\Add.png" />
     <Resource Include="Resources\Remove.png" />
-    <Resource Include="Resources\Unicorn.png" />
     <EmbeddedResource Include="..\..\Nupkg\ErikEJ.EntityFrameworkCore.DgmlBuilder\template.dgml">
       <Link>DgmlBuilder\template.dgml</Link>
     </EmbeddedResource>
@@ -161,24 +195,8 @@
       <Link>efreveng60.exe.zip</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="..\lib\efpt70.exe.zip">
-      <Link>efpt70.exe.zip</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <Content Include="..\lib\efreveng70.exe.zip">
-      <Link>efreveng70.exe.zip</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <Content Include="..\lib\T4_703.zip">
-      <Link>T4_703.zip</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
     <Content Include="..\lib\DacFX161.zip">
       <Link>DacFX161.zip</Link>
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
-    <Content Include="..\lib\efpt70sc.exe.zip">
-      <Link>efpt70sc.exe.zip</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <Content Include="..\lib\efreveng80.exe.zip">
@@ -193,14 +211,34 @@
       <Link>efpt80.exe.zip</Link>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Content Include="..\lib\efpt90.exe.zip">
+      <Link>efpt90.exe.zip</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\lib\efreveng90.exe.zip">
+      <Link>efreveng90.exe.zip</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\lib\T4_900.zip">
+      <Link>T4_900.zip</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\lib\T4_800_Split.zip">
+      <Link>T4_800_Split.zip</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="..\lib\T4_900_Split.zip">
+      <Link>T4_900_Split.zip</Link>
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
     <None Include="app.config" />
     <Content Include="CodeTemplates600.zip">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="CodeTemplates700.zip">
+    <Content Include="CodeTemplates800.zip">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="CodeTemplates800.zip">
+    <Content Include="CodeTemplates900.zip">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
     <None Include="Key.snk" />
@@ -268,111 +306,163 @@
   <ItemGroup>
     <EmbeddedResource Include="Locales\AboutLocale.cs.resx" />
     <EmbeddedResource Include="Locales\AboutLocale.de.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.en.resx" />
     <EmbeddedResource Include="Locales\AboutLocale.es.resx" />
-    <EmbeddedResource Include="Locales\AboutLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\AboutLocale.tr.resx" />
     <EmbeddedResource Include="Locales\AboutLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.it.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.pl.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.ru.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.tr.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\AboutLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\AboutLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>AboutLocale.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\AboutLocale.en.resx" />
-    <EmbeddedResource Include="Locales\AboutLocale.it.resx" />
-    <EmbeddedResource Include="Locales\AboutLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\AboutLocale.zh-Hant.resx" />
+    <EmbeddedResource Include="Locales\ButtonLocale.cs.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.de.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.en.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.es.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.fr.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.it.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.ja.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.ko.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.pl.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.pt-BR.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.ru.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.tr.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.zh-Hant.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.zh-Hans.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Locales\ButtonLocale.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ButtonLocale.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
     <EmbeddedResource Include="Locales\CompareLocale.cs.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.de.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.en.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.es.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.it.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.pl.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.ru.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.tr.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\CompareLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\CompareLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>CompareLocale.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\CompareLocale.en.resx" />
-    <EmbeddedResource Include="Locales\CompareLocale.it.resx" />
-    <EmbeddedResource Include="Locales\CompareLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\CompareLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\DgmlLocale.cs.resx" />
     <EmbeddedResource Include="Locales\DgmlLocale.de.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.en.resx" />
     <EmbeddedResource Include="Locales\DgmlLocale.es.resx" />
-    <EmbeddedResource Include="Locales\DgmlLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\DgmlLocale.tr.resx" />
     <EmbeddedResource Include="Locales\DgmlLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.it.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.pl.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.ru.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.tr.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\DgmlLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\DgmlLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>DgmlLocale.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\DgmlLocale.it.resx" />
-    <EmbeddedResource Include="Locales\DgmlLocale.en.resx" />
-    <EmbeddedResource Include="Locales\DgmlLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\DgmlLocale.zh-Hant.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.cs.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.de.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.es.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.tr.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.fr.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.resx">
-      <Generator>PublicResXFileCodeGenerator</Generator>
-      <LastGenOutput>MigrationsLocale.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Locales\MigrationsLocale.en.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.it.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\MigrationsLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\ModelAnalyzerLocale.cs.resx" />
     <EmbeddedResource Include="Locales\ModelAnalyzerLocale.de.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.en.resx" />
     <EmbeddedResource Include="Locales\ModelAnalyzerLocale.es.resx" />
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.tr.resx" />
     <EmbeddedResource Include="Locales\ModelAnalyzerLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.it.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.pl.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.ru.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.tr.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\ModelAnalyzerLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ModelAnalyzerLocale.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.en.resx" />
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.it.resx" />
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\ModelAnalyzerLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\ReverseEngineerLocale.cs.resx" />
     <EmbeddedResource Include="Locales\ReverseEngineerLocale.de.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.en.resx" />
     <EmbeddedResource Include="Locales\ReverseEngineerLocale.es.resx" />
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.tr.resx" />
     <EmbeddedResource Include="Locales\ReverseEngineerLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.it.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.pl.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.ru.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.tr.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\ReverseEngineerLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\ReverseEngineerLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>ReverseEngineerLocale.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.en.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.it.resx">
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\ReverseEngineerLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\SharedLocale.cs.resx" />
     <EmbeddedResource Include="Locales\SharedLocale.de.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.en.resx" />
     <EmbeddedResource Include="Locales\SharedLocale.es.resx" />
-    <EmbeddedResource Include="Locales\SharedLocale.pt-BR.resx" />
-    <EmbeddedResource Include="Locales\SharedLocale.tr.resx" />
     <EmbeddedResource Include="Locales\SharedLocale.fr.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.it.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.ja.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.ko.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.pl.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.pt-BR.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.ru.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.tr.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.zh-Hans.resx" />
+    <EmbeddedResource Include="Locales\SharedLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Locales\SharedLocale.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>SharedLocale.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="Locales\SharedLocale.it.resx" />
-    <EmbeddedResource Include="Locales\SharedLocale.en.resx" />
-    <EmbeddedResource Include="Locales\SharedLocale.zh-Hans.resx" />
-    <EmbeddedResource Include="Locales\SharedLocale.zh-Hant.resx" />
     <EmbeddedResource Include="Resources.en.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.en.Designer.cs</LastGenOutput>
@@ -380,6 +470,7 @@
     <EmbeddedResource Include="Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.cs.resx">
       <MergeWithCTO>true</MergeWithCTO>
@@ -389,17 +480,13 @@
       <MergeWithCTO>true</MergeWithCTO>
       <LogicalName>VSPackage.de.Resources</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.en.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.en.Resources</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.es.resx">
       <MergeWithCTO>true</MergeWithCTO>
       <LogicalName>VSPackage.es.Resources</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="VSPackage.pt-BR.resx">
-      <MergeWithCTO>true</MergeWithCTO>
-      <LogicalName>VSPackage.pt-BR.Resources</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="VSPackage.tr.resx">
-      <MergeWithCTO>true</MergeWithCTO>
-      <LogicalName>VSPackage.tr.Resources</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.fr.resx">
       <MergeWithCTO>true</MergeWithCTO>
@@ -409,6 +496,30 @@
       <MergeWithCTO>true</MergeWithCTO>
       <LogicalName>VSPackage.it.Resources</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.ja.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.jp.Resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.ko.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.ko.Resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.pl.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.pl.Resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.pt-BR.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.pt-BR.Resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.ru.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.ru.Resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="VSPackage.tr.resx">
+      <MergeWithCTO>true</MergeWithCTO>
+      <LogicalName>VSPackage.tr.Resources</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="VSPackage.zh-Hans.resx">
       <MergeWithCTO>true</MergeWithCTO>
       <LogicalName>VSPackage.zh-Hans.Resources</LogicalName>
@@ -416,10 +527,6 @@
     <EmbeddedResource Include="VSPackage.zh-Hant.resx">
       <MergeWithCTO>true</MergeWithCTO>
       <LogicalName>VSPackage.zh-Hant.Resources</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="VSPackage.en.resx">
-      <MergeWithCTO>true</MergeWithCTO>
-      <LogicalName>VSPackage.en.Resources</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -436,10 +543,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Dialogs\CompareResultDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Dialogs\EfCoreMigrationsDialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -479,6 +582,46 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Westwind.WPF.Statusbar\Assets\Icons.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Westwind.WPF.Statusbar\Assets\Icons\Icons.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Westwind.WPF.Statusbar\StatusBarControl.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Resources\Converter.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Resources\Style.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Wiz4_StatusDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\WizardDialogBox.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Wiz1_PickServerDatabaseDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Wiz2_PickTablesDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Wizard\Wiz3_EfCoreModelDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Content Include="db.png">
@@ -502,65 +645,36 @@
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <VSCTCompile Include="EFCorePowerToolsPackage.cs.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.de.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.en.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.es.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.fr.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.it.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.pt-BR.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.tr.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.zh-Hans.vsct">
-      <ResourceName>Menus.ctmenu</ResourceName>
-    </VSCTCompile>
-    <VSCTCompile Include="EFCorePowerToolsPackage.zh-Hant.vsct">
+    <VSCTCompile Include="EFCorePowerToolsPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AdysTech.CredentialManager" Version="2.6.0" />
     <PackageReference Include="Ben.Demystifier" Version="0.4.1" />
-    <PackageReference Include="Community.VisualStudio.Toolkit.17" Version="17.0.507" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.6.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="4.6.0" />
+    <PackageReference Include="Community.VisualStudio.Toolkit.17" Version="17.0.527" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Data.Framework" Version="17.4.33103.184" />
+    <PackageReference Include="Microsoft.VisualStudio.Data.Framework" Version="17.5.33428.388" />
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.0.32112.339" />
     <PackageReference Include="Microsoft.VSSDK.BuildTools">
-      <Version>17.8.2365</Version>
+      <Version>17.12.2069</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf">
-      <Version>1.1.39</Version>
+      <Version>1.1.135</Version>
     </PackageReference>
     <PackageReference Include="MvvmLightLibs">
       <Version>5.4.1.1</Version>
     </PackageReference>
-    <PackageReference Include="NuGet.ProjectModel" Version="6.6.0" />
-    <PackageReference Include="JetBrains.Annotations" Version="2020.1.0" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.12.1" />
+    <PackageReference Include="JetBrains.Annotations" Version="2024.2.0" />
   </ItemGroup>
   <Import Project="..\Shared\Shared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
